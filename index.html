@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <title>إدارة حالات تجديد الطلاب</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    /* CSS: إصلاح RTL وتنسيقات Materialize */
+    html, body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f4;
+      padding: 20px;
+      direction: rtl; /* اتجاه من اليمين لليسار */
+      text-align: right; /* محاذاة النص لليمين افتراضياً */
+    }
+    .container {
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      margin-top: 30px;
+    }
+    h4 {
+      color: #333;
+      margin-bottom: 25px;
+      font-weight: bold;
+    }
+    /* تحسين تصميم الحقول المدخلة لـ RTL */
+    .input-field label {
+        right: 0.75rem; /* لغة عربية */
+        left: auto;
+    }
+    .input-field label:not(.label-icon).active {
+        -webkit-transform: translateY(-14px) scale(0.8);
+        transform: translateY(-14px) scale(0.8);
+        right: 0.75rem !important;
+        left: auto !important;
+    }
+    .input-field .prefix {
+        right: 0.75rem;
+        left: auto;
+    }
+    .input-field input:focus + label {
+        right: 0.75rem !important;
+        left: auto !important;
+    }
+    .input-field input[type=number]:not(.browser-default):focus:not([readonly]) + label,
+    .input-field input[type=tel]:not(.browser-default):focus:not([readonly]) + label,
+    .input-field input[type=text]:not(.browser-default):focus:not([readonly]) + label {
+        color: #2196f3;
+    }
+    .input-field input[type=number]:not(.browser-default):focus:not([readonly]),
+    .input-field input[type=tel]:not(.browser-default):focus:not([readonly]),
+    .input-field input[type=text]:not(.browser-default):focus:not([readonly]) {
+        border-bottom: 1px solid #2196f3;
+        box-shadow: 0 1px 0 0 #2196f3;
+    }
+    /* Fix for Materialize Selects in RTL */
+    .select-wrapper input.select-dropdown {
+        text-align: right;
+        padding-right: 0.75rem !important;
+        padding-left: 3rem !important; /* To make space for the dropdown arrow */
+    }
+    .caret {
+        left: 0.75rem !important;
+        right: auto !important;
+    }
+    .dropdown-content li>a, .dropdown-content li>span {
+        text-align: right;
+    }
+
+    /* تنسيق الجدول */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+    }
+    th, td {
+      padding: 12px 15px;
+      text-align: right;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    th {
+      background-color: #f8f8f8;
+      font-weight: bold;
+      color: #555;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tr:hover {
+      background-color: #f0f0f0;
+    }
+    .status-tag {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      color: white;
+      display: inline-block;
+      min-width: 120px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    }
+    .status-مطلوب-التجديد { background-color: #ffb300; }
+    .status-تم-التجديد { background-color: #43a047; }
+    .status-تجاوز-الحد { background-color: #d32f2f; }
+    .status-لا-يوجد-حضور { background-color: #757575; }
+    .status-غير-محدد, .status- { background-color: #1976d2; }
+    .actions-cell button {
+        margin-left: 10px;
+        float: left; /* Keep float left for RTL button grouping */
+    }
+    .actions-cell button:first-child {
+        margin-left: 0;
+    }
+    .center-align {
+        text-align: center;
+    }
+    .right-align {
+        text-align: right;
+    }
+    .left-align { /* For elements that *must* be left-aligned */
+        text-align: left;
+    }
+    .button-group {
+        display: flex;
+        justify-content: flex-end; /* Align buttons to the right in RTL */
+        gap: 10px;
+    }
+    .main-buttons {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .main-buttons button {
+        margin: 0 10px;
+    }
+    /* إخفاء عناصر الفلترة والجدول في البداية */
+    #studentListContainer, #addStudentForm, #editDeleteStudentContainer, #updateSchedulesContainer, #manageStudentsContainer {
+        display: none; 
+    }
+    /* ستايلات إضافية للفورم */
+    .form-section { /* تم تعميم ستايلات الفورم */
+        padding: 20px;
+        border-top: 1px solid #eee;
+        margin-top: 30px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+    }
+    .form-section h5 {
+        margin-bottom: 20px;
+        color: #424242;
+    }
+    .schedule-input-group {
+        border: 1px dashed #ccc;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+    }
+    .schedule-input-group h6 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #555;
+    }
+    .button-group-form {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+    /* ستايلات خاصة لصفحة التعديل والحذف */
+    #editDeleteStudentContainer .student-details-form {
+        margin-bottom: 30px;
+    }
+    #editDeleteStudentContainer .schedule-input-group {
+        border-style: solid; /* تغيير نوع الحدود */
+        border-color: #a7a7a7;
+    }
+    #editDeleteStudentContainer .remove-schedule-btn {
+        margin-top: 10px; /* مسافة من أعلى */
+        width: 100%; /* زرار على عرض الحاوية */
+    }
+
+    /* ستايلات لصفحة تحديث المواعيد */
+    .time-selection-modal {
+        background-color: #fff;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        width: 90%;
+        max-width: 500px; /* حجم معقول */
+        max-height: 80vh; /* ارتفاع أقصى */
+        overflow-y: auto;
+    }
+    .time-selection-modal h3 {
+        margin-top: 0;
+        color: #333;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+    .time-slots-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px; /* مسافة بين الأزرار */
+        margin-bottom: 15px;
+        direction: ltr; /* لضمان عرض الأوقات من اليسار لليمين */
+        justify-content: flex-start; /* محاذاة لليسار */
+    }
+    .time-slot-chip {
+        padding: 8px 12px;
+        border-radius: 20px;
+        border: 1px solid #ccc;
+        background-color: #f0f0f0;
+        color: #333;
+        cursor: pointer;
+        transition: background-color 0.3s, border-color 0.3s;
+        font-size: 0.9em;
+    }
+    .time-slot-chip.selected {
+        background-color: #2196f3;
+        color: white;
+        border-color: #2196f3;
+    }
+    .time-slot-chip.disabled {
+        background-color: #e0e0e0;
+        color: #9e9e9e;
+        cursor: not-allowed;
+        border-color: #bbb;
+    }
+    .slots-section h4 {
+        font-size: 1.2em;
+        margin-bottom: 15px;
+        color: #555;
+    }
+    .no-slots-message {
+        text-align: center;
+        color: #888;
+        padding: 10px;
+    }
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    /* ستايلات لصفحة تحديث المواعيد */
+    #updateSchedulesContainer .teacher-selection-section {
+        margin-bottom: 25px;
+    }
+    #updateSchedulesContainer .days-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+    #updateSchedulesContainer .day-card {
+        background-color: #e3f2fd;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        text-align: center;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    #updateSchedulesContainer .day-card:hover {
+        background-color: #bbdefb;
+    }
+    #updateSchedulesContainer .day-card h6 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: #1a237e;
+    }
+    #updateSchedulesContainer .day-card p {
+        font-size: 0.9em;
+        color: #424242;
+    }
+    #updateSchedulesContainer .day-card span.chip {
+        margin: 4px;
+        font-size: 0.8em;
+    }
+
+    /* ستايلات لصفحة إدارة الطلاب */
+    #manageStudentsContainer {
+        display: none;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h4 class="center-align">إدارة حالات تجديد الطلاب</h4>
+
+    <div id="mainButtons" class="main-buttons">
+        <button class="btn waves-effect waves-light green" onclick="showAddStudentForm()">
+            <i class="material-icons right">person_add</i>إضافة طالب جديد
+        </button>
+        <button class="btn waves-effect waves-light blue" onclick="showRenewalList()">
+            <i class="material-icons right">view_list</i>عرض التجديدات
+        </button>
+        <button class="btn waves-effect waves-light orange" onclick="showEditDeleteStudentForm()">
+            <i class="material-icons right">edit</i>تعديل / حذف طالب
+        </button>
+        <button class="btn waves-effect waves-light purple" onclick="showUpdateSchedulesForm()">
+            <i class="material-icons right">schedule</i>تحديث مواعيد المعلمين
+        </button>
+        <button class="btn waves-effect waves-light teal" onclick="showManageStudentsList()">
+            <i class="material-icons right">people</i>إدارة الطلاب
+        </button>
+    </div>
+
+    <div id="studentListContainer">
+        <div class="filter-section">
+            <div class="input-field filter-input">
+                <i class="material-icons prefix">search</i>
+                <input type="text" id="studentSearch" onkeyup="filterStudents()" class="validate">
+                <label for="studentSearch">ابحث بالمعرف أو الاسم أو النظام</label>
+            </div>
+            <button class="btn waves-effect waves-light blue" onclick="loadStudents()">
+                <i class="material-icons right">refresh</i>تحديث البيانات
+            </button>
+            <button class="btn waves-effect waves-light grey" type="button" onclick="goHome()">
+                <i class="material-icons right">home</i>الرئيسية
+            </button>
+        </div>
+
+        <div id="studentList">
+          <p class="center-align">جاري تحميل بيانات الطلاب...</p>
+        </div>
+    </div>
+
+
+    <div id="addStudentForm" class="row form-section">
+        <h5 class="center-align">إضافة طالب جديد</h5>
+        <form class="col s12" onsubmit="handleNewStudentSubmit(event)">
+            <div class="row">
+                <div class="input-field col s6">
+                    <input id="new_student_name" type="text" class="validate" required>
+                    <label for="new_student_name">الاسم</label>
+                </div>
+                <div class="input-field col s6">
+                    <input id="new_student_age" type="number" class="validate">
+                    <label for="new_student_age">السن</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="input-field col s6">
+                    <input id="new_student_number" type="tel" class="validate">
+                    <label for="new_student_number">رقم التليفون</label>
+                </div>
+                <div class="input-field col s6">
+                    <select id="new_subscription_type" required>
+                        <option value="" disabled selected>اختر نوع الاشتراك</option>
+                        <option value="فردي صغار">فردي صغار</option>
+                        <option value="فردي كبار">فردي كبار</option>
+                        <option value="جماعي">جماعي</option>
+                        <option value="نور بيان">نور بيان</option>
+                    </select>
+                    <label>نوع الاشتراك</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="input-field col s12">
+                    <select id="new_system_type" required onchange="updateScheduleFields('add')">
+                        <option value="" disabled selected>اختر النظام</option>
+                        <option value="حلقة / اسبوع / 30 دقيقة">حلقة / اسبوع / 30 دقيقة</option>
+                        <option value="حلقتين / اسبوع / 30 دقيقة">حلقتين / اسبوع / 30 دقيقة</option>
+                        <option value="3 حلقات / اسبوع / 30 دقيقة">3 حلقات / اسبوع / 30 دقيقة</option>
+                        <option value="حلقتين / اسبوع / 60 دقيقة">حلقتين / اسبوع / 60 دقيقة</option>
+                        <option value="حلقة / اسبوع / 60 دقيقة">حلقة / اسبوع / 60 دقيقة</option>
+                        <option value="يومياً">يومياً</option>
+                        <option value="حلقتين / اسبوع / 45 دقيقة">حلقتين / اسبوع / 45 دقيقة</option>
+                        <option value="3 حلقات / اسبوع / 45 دقيقة">3 حلقات / اسبوع / 45 دقيقة</option>
+                        <option value="4 حلقات / اسبوع / 30 دقيقة">4 حلقات / اسبوع / 30 دقيقة</option>
+                        <option value="6 حلقات / اسبوع / 30 دقيقة">6 حلقات / اسبوع / 30 دقيقة</option>
+                    </select>
+                    <label>النظام</label>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="input-field col s12">
+                    <select id="new_teacher_name" required onchange="updateScheduleFields('add')">
+                        <option value="" disabled selected>اختر المعلم الأساسي للطالب</option>
+                        </select>
+                    <label>المعلم الأساسي</label>
+                </div>
+            </div>
+
+            <div id="addScheduleFieldsContainer">
+                </div>
+
+            <div class="button-group-form">
+                <button class="btn waves-effect waves-light blue" type="submit">
+                    <i class="material-icons right">send</i>إضافة الطالب
+                </button>
+                <button class="btn waves-effect waves-light red" type="button" onclick="goHome()">
+                    <i class="material-icons right">cancel</i>إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div id="editDeleteStudentContainer" class="row form-section">
+        <h5 class="center-align">تعديل / حذف طالب</h5>
+        <div class="row">
+            <div class="input-field col s10">
+                <i class="material-icons prefix">search</i>
+                <input type="text" id="edit_student_query" class="validate">
+                <label for="edit_student_query">ابحث بالمعرف أو رقم الهاتف</label>
+            </div>
+            <div class="col s2">
+                <button class="btn waves-effect waves-light blue" style="width: 100%;" onclick="searchStudentAndDisplay()">
+                    <i class="material-icons right">search</i>بحث
+                </button>
+            </div>
+        </div>
+
+        <div id="editStudentDetails" style="display: none;">
+            <form class="col s12" onsubmit="handleUpdateStudent(event)">
+                <input type="hidden" id="edit_student_id">
+                <input type="hidden" id="edit_student_master_row">
+                <input type="hidden" id="edit_student_subscription_date"> <div class="row student-details-form">
+                    <div class="input-field col s6">
+                        <input id="edit_student_name" type="text" class="validate" required>
+                        <label for="edit_student_name">الاسم</label>
+                    </div>
+                    <div class="input-field col s6">
+                        <input id="edit_student_age" type="number" class="validate">
+                        <label for="edit_student_age">السن</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s6">
+                        <input id="edit_student_number" type="tel" class="validate">
+                        <label for="edit_student_number">رقم التليفون</label>
+                    </div>
+                    <div class="input-field col s6">
+                        <select id="edit_subscription_type" required>
+                            <option value="" disabled selected>اختر نوع الاشتراك</option>
+                            <option value="فردي صغار">فردي صغار</option>
+                            <option value="فردي كبار">فردي كبار</option>
+                            <option value="جماعي">جماعي</option>
+                            <option value="نور بيان">نور بيان</option>
+                        </select>
+                        <label>نوع الاشتراك</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <select id="edit_system_type" required onchange="updateScheduleFields('edit')">
+                            <option value="" disabled selected>اختر النظام</option>
+                            <option value="حلقة / اسبوع / 30 دقيقة">حلقة / اسبوع / 30 دقيقة</option>
+                            <option value="حلقتين / اسبوع / 30 دقيقة">حلقتين / اسبوع / 30 دقيقة</option>
+                            <option value="3 حلقات / اسبوع / 30 دقيقة">3 حلقات / اسبوع / 30 دقيقة</option>
+                            <option value="حلقتين / اسبوع / 60 دقيقة">حلقتين / اسبوع / 60 دقيقة</option>
+                            <option value="حلقة / اسبوع / 60 دقيقة">حلقة / اسبوع / 60 دقيقة</option>
+                            <option value="يومياً">يومياً</option>
+                            <option value="حلقتين / اسبوع / 45 دقيقة">حلقتين / اسبوع / 45 دقيقة</option>
+                            <option value="3 حلقات / اسبوع / 45 دقيقة">3 حلقات / اسبوع / 45 دقيقة</option>
+                            <option value="4 حلقات / اسبوع / 30 دقيقة">4 حلقات / اسبوع / 30 دقيقة</option>
+                            <option value="6 حلقات / اسبوع / 30 دقيقة">6 حلقات / اسبوع / 30 دقيقة</option>
+                        </select>
+                        <label>النظام</label>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="input-field col s12">
+                        <select id="edit_teacher_name" required onchange="updateScheduleFields('edit')">
+                            <option value="" disabled selected>اختر المعلم الأساسي للطالب</option>
+                            </select>
+                        <label>المعلم الأساسي</label>
+                    </div>
+                </div>
+
+                <div id="editScheduleFieldsContainer">
+                    </div>
+
+                <div class="button-group-form">
+                    <button class="btn waves-effect waves-light blue" type="submit">
+                        <i class="material-icons right">save</i>حفظ التعديلات
+                    </button>
+                    <button class="btn waves-effect waves-light red darken-2" type="button" onclick="promptDeleteStudent()">
+                        <i class="material-icons right">delete_forever</i>حذف الطالب
+                    </button>
+                    <button class="btn waves-effect waves-light grey" type="button" onclick="goHome()">
+                        <i class="material-icons right">cancel</i>إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="updateSchedulesContainer" class="row form-section">
+        <h5 class="center-align">تحديث مواعيد المعلمين المتاحة</h5>
+        <div class="row teacher-selection-section">
+            <div class="input-field col s12">
+                <select id="update_teacher_name" required onchange="displayTeacherSchedulesForUpdate()">
+                    <option value="" disabled selected>اختر المعلم لتحديث مواعيده</option>
+                    </select>
+                <label>المعلم</label>
+            </div>
+        </div>
+        
+        <div id="teacherSchedulesDisplay" style="display: none;">
+            <div class="days-grid">
+                </div>
+            <div class="button-group-form">
+                <button class="btn waves-effect waves-light grey" type="button" onclick="goHome()">
+                    <i class="material-icons right">cancel</i>إلغاء
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="manageStudentsContainer" class="row form-section">
+        <h5 class="center-align">إدارة الطلاب (تعديل / حذف)</h5>
+        <div class="filter-section">
+            <div class="input-field filter-input">
+                <i class="material-icons prefix">search</i>
+                <input type="text" id="manage_student_search" onkeyup="filterManageStudents()" class="validate">
+                <label for="manage_student_search">ابحث بالمعرف أو الاسم أو الرقم</label>
+            </div>
+            <button class="btn waves-effect waves-light blue" onclick="loadManageStudents()">
+                <i class="material-icons right">refresh</i>تحديث القائمة
+            </button>
+            <button class="btn waves-effect waves-light grey" type="button" onclick="goHome()">
+                <i class="material-icons right">home</i>الرئيسية
+            </button>
+        </div>
+
+        <div id="manageStudentList">
+            <p class="center-align">جاري تحميل بيانات الطلاب...</p>
+        </div>
+    </div>
+
+
+  </div>
+
+  <div id="initialTeacherDataElement" style="display:none;"><?!= initialTeacherDataJson ?></div>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    // -----------------------------------------------------------
+    // الدوال الأساسية لإدارة عرض الأقسام الرئيسية (تم نقلها للأعلى لضمان التعريف)
+    // -----------------------------------------------------------
+    function goHome() {
+        document.getElementById('mainButtons').style.display = 'block';
+        document.getElementById('studentListContainer').style.display = 'none';
+        document.getElementById('addStudentForm').style.display = 'none';
+        document.getElementById('editDeleteStudentContainer').style.display = 'none';
+        document.getElementById('updateSchedulesContainer').style.display = 'none';
+        document.getElementById('manageStudentsContainer').style.display = 'none';
+        
+        // إعادة ضبط الفورمات عند العودة للصفحة الرئيسية
+        const addForm = document.getElementById('addStudentForm').querySelector('form');
+        if (addForm) addForm.reset();
+        document.getElementById('addScheduleFieldsContainer').innerHTML = '';
+
+        const editForm = document.getElementById('editDeleteStudentContainer').querySelector('form');
+        if (editForm) editForm.reset();
+        document.getElementById('editScheduleFieldsContainer').innerHTML = '';
+        document.getElementById('editStudentDetails').style.display = 'none';
+        document.getElementById('edit_student_query').value = '';
+
+        const updateForm = document.getElementById('updateSchedulesContainer').querySelector('form');
+        if (updateForm) updateForm.reset();
+        document.getElementById('teacherSchedulesDisplay').style.display = 'none';
+        document.querySelector('#updateSchedulesContainer .days-grid').innerHTML = '';
+        
+        const manageSearch = document.getElementById('manage_student_search');
+        if (manageSearch) manageSearch.value = '';
+        const manageList = document.getElementById('manageStudentList');
+        if (manageList) manageList.innerHTML = '<p class="center-align">جاري تحميل بيانات الطلاب...</p>';
+
+
+        M.updateTextFields();
+        M.FormSelect.init(document.getElementById('new_subscription_type'));
+        M.FormSelect.init(document.getElementById('new_system_type'));
+        M.FormSelect.init(document.getElementById('new_teacher_name'));
+        M.FormSelect.init(document.getElementById('edit_subscription_type'));
+        M.FormSelect.init(document.getElementById('edit_system_type'));
+        M.FormSelect.init(document.getElementById('edit_teacher_name'));
+        M.FormSelect.init(document.getElementById('update_teacher_name'));
+    }
+
+    function showAddStudentForm() {
+        document.getElementById('mainButtons').style.display = 'none';
+        document.getElementById('studentListContainer').style.display = 'none';
+        document.getElementById('editDeleteStudentContainer').style.display = 'none';
+        document.getElementById('updateSchedulesContainer').style.display = 'none';
+        document.getElementById('manageStudentsContainer').style.display = 'none';
+        document.getElementById('addStudentForm').style.display = 'block';
+        
+        const addForm = document.getElementById('addStudentForm').querySelector('form');
+        if (addForm) addForm.reset();
+        document.getElementById('addScheduleFieldsContainer').innerHTML = '';
+        M.updateTextFields();
+        initializeTeacherDataForForms('add');
+    }
+
+    function showRenewalList() {
+        document.getElementById('mainButtons').style.display = 'none';
+        document.getElementById('addStudentForm').style.display = 'none';
+        document.getElementById('editDeleteStudentContainer').style.display = 'none';
+        document.getElementById('updateSchedulesContainer').style.display = 'none';
+        document.getElementById('manageStudentsContainer').style.display = 'none';
+        document.getElementById('studentListContainer').style.display = 'block';
+        loadStudents();
+        M.updateTextFields(); 
+    }
+
+    function showEditDeleteStudentForm() {
+        document.getElementById('mainButtons').style.display = 'none';
+        document.getElementById('studentListContainer').style.display = 'none';
+        document.getElementById('addStudentForm').style.display = 'none';
+        document.getElementById('updateSchedulesContainer').style.display = 'none';
+        document.getElementById('manageStudentsContainer').style.display = 'none';
+        document.getElementById('editDeleteStudentContainer').style.display = 'block';
+        
+        const editForm = document.getElementById('editDeleteStudentContainer').querySelector('form');
+        if (editForm) editForm.reset();
+        document.getElementById('editScheduleFieldsContainer').innerHTML = '';
+        document.getElementById('editStudentDetails').style.display = 'none';
+        document.getElementById('edit_student_query').value = '';
+        M.updateTextFields();
+        initializeTeacherDataForForms('edit');
+    }
+
+    function showUpdateSchedulesForm() {
+        document.getElementById('mainButtons').style.display = 'none';
+        document.getElementById('studentListContainer').style.display = 'none';
+        document.getElementById('addStudentForm').style.display = 'none';
+        document.getElementById('editDeleteStudentContainer').style.display = 'none';
+        document.getElementById('manageStudentsContainer').style.display = 'none';
+        document.getElementById('updateSchedulesContainer').style.display = 'block';
+
+        const updateForm = document.getElementById('updateSchedulesContainer').querySelector('form');
+        if (updateForm) updateForm.reset();
+        document.getElementById('teacherSchedulesDisplay').style.display = 'none';
+        document.querySelector('#updateSchedulesContainer .days-grid').innerHTML = '';
+        M.updateTextFields();
+        initializeTeacherDataForForms('update');
+    }
+
+
+    function processAndDisplayManageStudents(jsonString) {
+    let students = [];
+    try {
+        students = JSON.parse(jsonString);
+        displayFilteredStudents(students, 'manage'); // عرض الطلاب في جدول إدارة الطلاب
+    } catch (e) {
+        console.error("فشل في تحليل البيانات:", e);
+        M.toast({html: `حدث خطأ في تحليل البيانات: ${e.message}`, classes: 'red darken-3'});
+    }
+}
+
+
+
+    function loadManageStudents() {
+        const manageStudentListDiv = document.getElementById('manageStudentList');
+        manageStudentListDiv.innerHTML = '<p class="center-align">جاري تحميل بيانات الطلاب...</p>';
+        google.script.run
+            .withSuccessHandler(processAndDisplayManageStudents)
+            .withFailureHandler(onFailure)
+            .getStudentsRenewalStatus(); // نستخدم نفس الدالة لجلب بيانات الطلاب الأساسية
+    }
+
+
+
+    // دالة جديدة: إظهار صفحة إدارة الطلاب (عرض الكل)
+    function showManageStudentsList() {
+        document.getElementById('mainButtons').style.display = 'none';
+        document.getElementById('studentListContainer').style.display = 'none';
+        document.getElementById('addStudentForm').style.display = 'none';
+        document.getElementById('editDeleteStudentContainer').style.display = 'none';
+        document.getElementById('updateSchedulesContainer').style.display = 'none';
+        document.getElementById('manageStudentsContainer').style.display = 'block';
+        loadManageStudents(); // --> هنا المشكلة loadManageStudents ما كانتش متعرفة
+        M.updateTextFields();
+    }
+
+
+    // -----------------------------------------------------------
+    // الدوال المساعدة العامة (يجب أن تكون هنا أيضاً)
+    // -----------------------------------------------------------
+
+    // دالة لحساب عدد الحلقات بناءً على النظام
+    function getMonthlyMaxClassesForForm(systemType) {
+        if (!systemType) return 0;
+        const normalizedSystem = systemType.toLowerCase();
+        switch (normalizedSystem) {
+            case "حلقة / اسبوع / 30 دقيقة":
+            case "حلقة / اسبوع / 60 دقيقة":
+                return 1;
+            case "حلقتين / اسبوع / 30 دقيقة":
+            case "حلقتين / اسبوع / 60 دقيقة":
+            case "حلقتين / اسبوع / 45 دقيقة":
+                return 2;
+            case "3 حلقات / اسبوع / 30 دقيقة":
+            case "3 حلقات / اسبوع / 45 دقيقة":
+                return 3;
+            case "4 حلقات / اسبوع / 30 دقيقة":
+            case "6 حلقات / اسبوع / 30 دقيقة":
+            case "يومياً":
+                return 6;
+            default:
+                return 0;
+        }
+    }
+
+    // دالة لمعالجة الأخطاء من Apps Script
+    function onFailure(error) {
+      console.error("An error occurred from Apps Script:", error.message);
+      M.toast({html: `حدث خطأ: ${error.message}`, classes: 'red darken-3'});
+      document.getElementById('studentListContainer').style.display = 'none';
+      document.getElementById('addStudentForm').style.display = 'none';
+      document.getElementById('editDeleteStudentContainer').style.display = 'none';
+      document.getElementById('updateSchedulesContainer').style.display = 'none';
+      document.getElementById('manageStudentsContainer').style.display = 'none';
+      document.getElementById('mainButtons').style.display = 'block';
+    }
+
+
+    // -----------------------------------------------------------
+    // متغيرات عامة
+    // -----------------------------------------------------------
+    let allStudentsData = []; // لصفحة عرض التجديدات
+    let allManageStudentsData = []; // لصفحة إدارة الطلاب (عرض الكل)
+    let teachersNames = [];
+    let availableSchedules = {};
+    let allSchedulesWithStatus = {};
+    let currentSelectedTeacherForUpdate = null;
+
+
+    // هذا الكود سيقوم بقراءة البيانات الأولية من العنصر المخفي
+    try {
+        const initialDataElement = document.getElementById('initialTeacherDataElement');
+        if (initialDataElement && initialDataElement.textContent) {
+            const initialData = JSON.parse(initialDataElement.textContent);
+            if (initialData && initialData.teacherNames && initialData.availableSchedules && initialData.allSchedulesWithStatus) {
+                teachersNames = initialData.teacherNames;
+                availableSchedules = initialData.availableSchedules;
+                allSchedulesWithStatus = initialData.allSchedulesWithStatus;
+                console.log("Using pre-loaded initial data from hidden element.");
+            } else {
+                 console.error("Initial data from hidden element was empty or invalid JSON.");
+            }
+        } else {
+            console.error("Hidden element for initial data not found or empty.");
+        }
+    } catch (e) {
+        console.error("Failed to parse initialTeacherData from hidden element:", e);
+    }
+    
+    // دالة مساعدة لتنسيق الوقت من 24 ساعة إلى 12 ساعة (ص/م)
+    function formatTime12Hour(time24hrPart) {
+        if (typeof time24hrPart !== 'string' || !time24hrPart.includes(':')) return '';
+        const [hours, minutes] = time24hrPart.split(':').map(Number);
+        if (isNaN(hours) || isNaN(minutes)) return 'وقت غير صالح';
+        const ampm = hours >= 12 ? 'م' : 'ص';
+        const formattedHours = hours % 12 || 12;
+        return `${formattedHours}:${minutes < 10 ? '0' : ''}${minutes} ${ampm}`;
+    }
+
+    // دالة مساعدة لتحويل الوقت إلى دقائق للمقارنة
+    function getTimeInMinutes(timeString) {
+        if (typeof timeString !== 'string' || !timeString.includes(':')) return 0;
+        
+        let [timePart, ampm] = timeString.split(' ');
+        let [hours, minutes] = timePart.split(':').map(Number);
+
+        if (isNaN(hours) || isNaN(minutes)) return 0;
+
+        if (ampm) {
+            ampm = ampm.trim().toLowerCase();
+            if (ampm === 'م' && hours !== 12) {
+                hours += 12;
+            } else if (ampm === 'ص' && hours === 12) {
+                hours = 0;
+            }
+        }
+        return hours * 60 + minutes;
+    }
+
+    const possibleTimeSlots = [
+        "9:00 ص", "9:30 ص", "10:00 ص", "10:30 ص", "11:00 ص", "11:30 ص", "12:00 م", "12:30 م",
+        "1:00 م", "1:30 م", "2:00 م", "2:30 م", "3:00 م", "3:30 م", "4:00 م", "4:30 م",
+        "5:00 م", "5:30 م", "6:00 م", "6:30 م", "7:00 م", "7:30 م", "8:00 م", "8:30 م",
+        "9:00 م", "9:30 م", "10:00 م", "10:30 م"
+    ]; 
+
+    const daysOfWeek = ["السبت", "الاحد", "الاثنين", "الثلاثاء", "الاربعاء", "الخميس", "الجمعة"];
+    let selectedSlotsInModal = []; 
+
+
+    // -----------------------------------------------------------
+    // دوال تحميل وعرض بيانات الطلاب (الجدول)
+    // -----------------------------------------------------------
+
+    function loadStudents() { // لصفحة عرض التجديدات
+      const studentListDiv = document.getElementById('studentList');
+      studentListDiv.innerHTML = '<p class="center-align">جاري تحميل بيانات الطلاب...</p>';
+      google.script.run
+        .withSuccessHandler(processAndDisplayStudents)
+        .withFailureHandler(onFailure)
+        .getStudentsRenewalStatus();
+    }
+
+    function processAndDisplayStudents(jsonString) { // لصفحة عرض التجديدات
+      console.log("processAndDisplayStudents: Received JSON string:", jsonString);
+      let students = [];
+      try {
+        students = JSON.parse(jsonString);
+        console.log("processAndDisplayStudents: Parsed data:", students);
+      } catch (e) {
+        console.error("Failed to parse JSON string:", e);
+        M.toast({html: `خطأ في تحليل البيانات: ${e.message}`, classes: 'red darken-3'});
+        document.getElementById('studentList').innerHTML = '<p class="center-align" style="color: red;">خطأ في تنسيق البيانات المستلمة.</p>';
+        return;
+      }
+      
+      allStudentsData = students; // لصفحة عرض التجديدات
+      displayFilteredStudents(students, 'renewal'); // نوع العرض: تجديد
+      M.updateTextFields(); 
+    }
+
+    // دالة عرض الجدول المفلتر (مُعدلة لدعم وضعين للعرض)
+    // viewMode: 'renewal' أو 'manage'
+    function displayFilteredStudents(studentsToDisplay, viewMode) {
+      const targetDiv = viewMode === 'renewal' ? document.getElementById('studentList') : document.getElementById('manageStudentList');
+      targetDiv.innerHTML = '';
+
+      if (!studentsToDisplay || studentsToDisplay.length === 0) {
+        targetDiv.innerHTML = '<p class="center-align">لا يوجد طلاب لعرضهم.</p>';
+        return;
+      }
+
+      let tableHtml = `
+        <table class="striped highlight responsive-table">
+          <thead>
+            <tr>
+              <th>المعرف</th>
+              <th>الاسم</th>
+              <th>السن</th>
+              <th>الرقم</th>
+              <th>النظام</th>
+              ${viewMode === 'renewal' ? `
+              <th>الحصص الحاضرة</th>
+              <th>تاريخ آخر دفع</th>
+              <th>المبلغ</th>
+              <th>الحالة</th>
+              ` : ''}
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      studentsToDisplay.forEach(student => {
+        const statusClass = student.renewalStatus ? `status-${student.renewalStatus.replace(/\s/g, '-')}` : 'status-غير-محدد';
+        const lastPaymentDate = student.lastPaymentDate || '';
+
+        tableHtml += `
+          <tr>
+            <td>${student.id || ''}</td>
+            <td>${student.name || ''}</td>
+            <td>${student.age || ''}</td>
+            <td>${student.number || ''}</td>
+            <td>${student.system || ''}</td>
+            ${viewMode === 'renewal' ? `
+            <td>${student.attendance || 0}</td>
+            <td>${lastPaymentDate}</td>
+            <td>${student.amount || 0}</td>
+            <td><span class="status-tag ${statusClass}">${student.renewalStatus || 'غير محدد'}</span></td>
+            ` : ''}
+            <td class="actions-cell">
+              ${viewMode === 'renewal' ? `
+              <button class="btn waves-effect waves-light green" onclick="markAsRenewed('${student.id}', ${student.row})">
+                <i class="material-icons right">check</i>تم التجديد
+              </button>
+              <button class="btn waves-effect waves-light red" onclick="promptForManualRenewal('${student.id}', ${student.row})">
+                <i class="material-icons right">edit</i>تجديد يدوي
+              </button>
+              ` : `
+              <button class="btn waves-effect waves-light orange" onclick="editStudentFromList('${student.id}', ${student.row})">
+                <i class="material-icons right">edit</i>تعديل
+              </button>
+              <button class="btn waves-effect waves-light red darken-2" onclick="promptDeleteStudentFromList('${student.id}', '${student.name}')">
+                <i class="material-icons right">delete</i>حذف
+              </button>
+              `}
+            </td>
+          </tr>
+        `;
+      });
+
+      tableHtml += `
+          </tbody>
+        </table>
+      `;
+
+      targetDiv.innerHTML = tableHtml;
+    }
+
+    // دالة فلترة الطلاب لصفحة التجديدات
+    function filterStudents() {
+      const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+      const filteredStudents = allStudentsData.filter(student => {
+        return (student.id && student.id.toString().toLowerCase().includes(searchTerm)) ||
+               (student.name && student.name.toString().toLowerCase().includes(searchTerm)) ||
+               (student.system && student.system.toString().toLowerCase().includes(searchTerm));
+      });
+      displayFilteredStudents(filteredStudents, 'renewal');
+    }
+
+    // دوال التجديد والدفع (كما هي)
+    function markAsRenewed(studentId, row) {
+      if (confirm(`هل أنت متأكد من تسجيل تجديد الطالب ${studentId} تلقائياً؟`)) {
+        M.toast({html: `جاري تجديد الطالب ${studentId}...`, classes: 'blue lighten-1'});
+        google.script.run
+          .withSuccessHandler(function() {
+            M.toast({html: `تم تجديد الطالب ${studentId} بنجاح.`, classes: 'green darken-1'});
+            loadStudents();
+          })
+          .withFailureHandler(onFailure)
+          .handleRenewalFromWeb(studentId, row, 0);
+      }
+    }
+
+    function promptForManualRenewal(studentId, row) {
+      const amount = prompt(`أدخل المبلغ المدفوع للطالب ${studentId} لتسجيل دفعة يدوية:`);
+      if (amount !== null && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0) {
+        M.toast({html: `جاري تسجيل دفعة ${amount} للطالب ${studentId}...`, classes: 'blue lighten-1'});
+        google.script.run
+          .withSuccessHandler(function() {
+            M.toast({html: `تم تسجيل دفعة ${amount} للطالب ${studentId} بنجاح.`, classes: 'green darken-1'});
+            loadStudents();
+          })
+          .withFailureHandler(onFailure)
+          .handleRenewalFromWeb(studentId, row, parseFloat(amount));
+      } else if (amount !== null) {
+        M.toast({html: 'المبلغ المدخل غير صالح. يرجى إدخال رقم موجب.', classes: 'red darken-1'});
+      }
+    }
+
+
+    // -----------------------------------------------------------
+    // دوال صفحة تحديث مواعيد المعلمين (كما هي)
+    // -----------------------------------------------------------
+    function displayTeacherSchedulesForUpdate() {
+        const teacherName = document.getElementById('update_teacher_name').value;
+        const teacherSchedulesDisplayDiv = document.getElementById('teacherSchedulesDisplay');
+        const daysGrid = teacherSchedulesDisplayDiv.querySelector('.days-grid');
+        daysGrid.innerHTML = '';
+
+        if (!teacherName) {
+            teacherSchedulesDisplayDiv.style.display = 'none';
+            return;
+        }
+
+        currentSelectedTeacherForUpdate = teacherName;
+        teacherSchedulesDisplayDiv.style.display = 'block';
+
+        daysOfWeek.forEach(day => {
+            const dayCard = document.createElement('div');
+            dayCard.className = 'day-card';
+            dayCard.onclick = () => showTimeSlotSelectionModal(day);
+
+            const teacherDaySchedules = allSchedulesWithStatus[teacherName] && allSchedulesWithStatus[teacherName][day] ? 
+                                        allSchedulesWithStatus[teacherName][day] : [];
+            
+            const availableCount = teacherDaySchedules.filter(slot => !slot.isBooked).length;
+            const bookedCount = teacherDaySchedules.filter(slot => slot.isBooked).length;
+
+            let timeChipsHtml = '';
+            teacherDaySchedules.forEach(slot => {
+                const slotClass = slot.isBooked ? 'red lighten-2' : 'green lighten-2';
+                timeChipsHtml += `<span class="new badge ${slotClass}" data-badge-caption="">${formatTime12Hour(slot.timeSlot)}</span>`;
+            });
+
+
+            dayCard.innerHTML = `
+                <h6>${day}</h6>
+                <p>متاح: ${availableCount} | محجوز: ${bookedCount}</p>
+                <div style="text-align: left; padding: 5px; min-height: 40px;">${timeChipsHtml}</div>
+            `;
+            daysGrid.appendChild(dayCard);
+        });
+        M.updateTextFields();
+    }
+
+    function showTimeSlotSelectionModal(day) {
+        const modalDiv = document.createElement('div');
+        modalDiv.id = 'timeSlotModal';
+        modalDiv.className = 'modal';
+        modalDiv.innerHTML = `
+            <div class="modal-content time-selection-modal">
+                <h3>تحديد مواعيد يوم ${day}</h3>
+                <div class="time-slots-modal-sections">
+                    <div class="slots-section card">
+                        <h4>مواعيد صباحية (09:00 ص - 03:00 م)</h4>
+                        <div class="time-slots-grid"></div>
+                    </div>
+                    <div class="slots-section card" style="margin-top: 20px;">
+                        <h4>مواعيد مسائية (03:00 م - 11:00 م)</h4>
+                        <div class="time-slots-grid"></div>
+                    </div>
+                </div>
+                <div class="modal-footer modal-actions">
+                    <button type="button" class="btn blue waves-effect waves-light" id="saveTimeSlotsBtn">تأكيد المواعيد</button>
+                    <button type="button" class="modal-close btn red waves-effect waves-light">إلغاء</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modalDiv);
+
+        const instance = M.Modal.init(modalDiv, {
+            onOpenEnd: () => {
+                renderTimeSlotsInModal(day);
+                document.getElementById('saveTimeSlotsBtn').onclick = () => handleSaveTimeSlots(day);
+            },
+            onCloseEnd: () => {
+                modalDiv.remove();
+            }
+        });
+        instance.open();
+    }
+
+    function renderTimeSlotsInModal(day) {
+        const morningSlotsGrid = document.querySelector('#timeSlotModal .slots-section:first-child .time-slots-grid');
+        const eveningSlotsGrid = document.querySelector('#timeSlotModal .slots-section:last-child .time-slots-grid');
+        
+        morningSlotsGrid.innerHTML = '';
+        eveningSlotsGrid.innerHTML = '';
+
+        const teacherAllSchedulesForDay = allSchedulesWithStatus[currentSelectedTeacherForUpdate] && allSchedulesWithStatus[currentSelectedTeacherForUpdate][day] ?
+                                         allSchedulesWithStatus[currentSelectedTeacherForUpdate][day] : [];
+        
+        selectedSlotsInModal = teacherAllSchedulesForDay.filter(slot => !slot.isBooked).map(slot => slot.timeSlot);
+
+        const createTimeSlotButton = (slotString, isBooked, bookedByName = null) => {
+            const isSelected = selectedSlotsInModal.includes(slotString);
+            const isDisabled = isBooked;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `time-slot-chip ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`;
+            button.onclick = () => {
+                if (!isDisabled) {
+                    toggleSlotSelection(slotString);
+                    button.className = `time-slot-chip ${selectedSlotsInModal.includes(slotString) ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`;
+                } else {
+                     M.toast({html: `هذا الموعد محجوز بالفعل بواسطة ${bookedByName || 'طالب آخر'}. لا يمكن إلغاء تحديده.`, classes: 'red darken-3'});
+                }
+            };
+            button.textContent = `${formatTime12Hour(slotString)} ${isBooked ? `(${bookedByName || 'محجوز'})` : ''}`;
+            return button;
+        };
+
+        const sortedUniqueTimes = possibleTimeSlots.sort((a,b) => getTimeInMinutes(a) - getTimeInMinutes(b));
+
+
+        sortedUniqueTimes.forEach(slotString => {
+            const startMinutes = getTimeInMinutes(slotString);
+
+            const slotData = teacherAllSchedulesForDay.find(s => s.timeSlot === slotString);
+            
+            if (startMinutes >= getTimeInMinutes("9:00 ص") && startMinutes < getTimeInMinutes("3:00 م")) {
+                morningSlotsGrid.appendChild(createTimeSlotButton(slotString, slotData && slotData.isBooked, slotData?.bookedBy?.name));
+            } else if (startMinutes >= getTimeInMinutes("3:00 م") && startMinutes < getTimeInMinutes("11:00 م")) {
+                eveningSlotsGrid.appendChild(createTimeSlotButton(slotString, slotData && slotData.isBooked, slotData?.bookedBy?.name));
+            }
+        });
+
+        if (morningSlotsGrid.innerHTML === '' && eveningSlotsGrid.innerHTML === '') {
+            morningSlotsGrid.innerHTML = '<p class="no-slots-message">لا توجد مواعيد متاحة في هذا اليوم.</p>';
+        }
+    }
+
+
+    function toggleSlotSelection(slotString) {
+        const isCurrentlySelected = selectedSlotsInModal.includes(slotString);
+        if (isCurrentlySelected) {
+            selectedSlotsInModal = selectedSlotsInModal.filter(s => s !== slotString);
+        } else {
+            selectedSlotsInModal.push(slotString);
+        }
+        console.log("Selected slots in modal:", selectedSlotsInModal);
+    }
+
+
+    function handleSaveTimeSlots(day) {
+        M.toast({html: 'جاري حفظ المواعيد...', classes: 'blue lighten-1'});
+        
+        const modalInstance = M.Modal.getInstance(document.getElementById('timeSlotModal'));
+        if (modalInstance) {
+            modalInstance.close();
+        }
+
+        google.script.run
+            .withSuccessHandler(function(response) {
+                if (response.status === "success") {
+                    M.toast({html: `تم تحديث مواعيد ${currentSelectedTeacherForUpdate} في يوم ${day} بنجاح.`, classes: 'green darken-1'});
+                    loadTeacherDataFromServer('update');
+                } else {
+                    M.toast({html: `خطأ في حفظ المواعيد: ${response.message}`, classes: 'red darken-3'});
+                }
+            })
+            .withFailureHandler(onFailure)
+            .updateTeacherAvailableSchedules(currentSelectedTeacherForUpdate, day, selectedSlotsInModal);
+    }
+
+
+    // -----------------------------------------------------------
+    // دوال إدارة بيانات المعلمين والمواعيد في الفورمز (كما هي)
+    // -----------------------------------------------------------
+    function initializeTeacherDataForForms(formType) {
+        if (teachersNames.length > 0 || Object.keys(availableSchedules).length > 0) {
+            console.log("Using pre-loaded initial data from general variables.");
+            setupTeacherAndScheduleDropdowns(formType);
+        } else {
+            console.log("Pre-loaded initial data missing or empty. Falling back to server call.");
+            loadTeacherDataFromServer(formType);
+        }
+    }
+
+    function loadTeacherDataFromServer(formType) {
+        M.toast({html: 'جاري جلب بيانات المعلمين والمواعيد من السيرفر...', classes: 'blue lighten-1'});
+        google.script.run
+            .withSuccessHandler(function(jsonString) {
+                const data = JSON.parse(jsonString);
+                teachersNames = data.teacherNames;
+                availableSchedules = data.availableSchedules;
+                allSchedulesWithStatus = data.allSchedulesWithStatus;
+                console.log("FALLBACK Teachers Data Received:", teachersNames);
+                console.log("FALLBACK Available Schedules Received:", availableSchedules);
+                setupTeacherAndScheduleDropdowns(formType);
+            })
+            .withFailureHandler(onFailure)
+            .getTeacherAndAvailableSchedules(); 
+    }
+
+    function setupTeacherAndScheduleDropdowns(formType, studentData = null) {
+        const subTypeSelectId = formType === 'add' ? 'new_subscription_type' : 'edit_subscription_type';
+        const systemTypeSelectId = formType === 'add' ? 'new_system_type' : 'edit_system_type';
+        let mainTeacherSelectId;
+        if (formType === 'add') {
+            mainTeacherSelectId = 'new_teacher_name';
+        } else if (formType === 'edit') {
+            mainTeacherSelectId = 'edit_teacher_name';
+        } else if (formType === 'update') {
+            mainTeacherSelectId = 'update_teacher_name';
+        }
+        
+        if (document.getElementById(subTypeSelectId)) {
+            M.FormSelect.init(document.getElementById(subTypeSelectId));
+        }
+        if (document.getElementById(systemTypeSelectId)) {
+            M.FormSelect.init(document.getElementById(systemTypeSelectId));
+        }
+
+        const mainTeacherSelect = document.getElementById(mainTeacherSelectId);
+        if (mainTeacherSelect) {
+            mainTeacherSelect.innerHTML = `<option value="" disabled selected>اختر المعلم ${formType === 'update' ? 'لتحديث مواعيده' : 'الأساسي للطالب'}</option>`;
+            teachersNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                mainTeacherSelect.appendChild(option);
+            });
+            M.FormSelect.init(mainTeacherSelect);
+            if (formType === 'update') {
+                displayTeacherSchedulesForUpdate();
+            }
+        }
+
+        if (formType === 'edit' && studentData) {
+            document.getElementById('edit_student_id').value = studentData.id;
+            document.getElementById('edit_student_master_row').value = studentData.masterRow;
+            document.getElementById('edit_student_subscription_date').value = studentData.subscriptionDate;
+            document.getElementById('edit_student_name').value = studentData.name;
+            document.getElementById('edit_student_age').value = studentData.age;
+            document.getElementById('edit_student_number').value = studentData.number;
+
+            document.getElementById(subTypeSelectId).value = studentData.subscriptionType;
+            M.FormSelect.init(document.getElementById(subTypeSelectId));
+            
+            document.getElementById(systemTypeSelectId).value = studentData.system;
+            M.FormSelect.init(document.getElementById(systemTypeSelectId));
+            
+            document.getElementById(mainTeacherSelectId).value = studentData.schedules && studentData.schedules.length > 0 ? studentData.schedules[0].teacherName : '';
+            M.FormSelect.init(document.getElementById(mainTeacherSelectId));
+
+            M.updateTextFields();
+        }
+
+        if (document.getElementById(systemTypeSelectId) && document.getElementById(systemTypeSelectId).value) {
+            updateScheduleFields(formType, studentData ? studentData.schedules : []); 
+        }
+        M.updateTextFields();
+    }
+
+    function updateScheduleFields(formType, initialSchedules = []) {
+        const systemTypeSelectId = formType === 'add' ? 'new_system_type' : 'edit_system_type';
+        const scheduleContainerId = formType === 'add' ? 'addScheduleFieldsContainer' : 'editScheduleFieldsContainer';
+        const teacherSelectIdPrefix = formType === 'add' ? 'schedule_teacher_' : 'edit_schedule_teacher_';
+        const daySelectIdPrefix = formType === 'add' ? 'schedule_day_' : 'edit_schedule_day_';
+        const timeSelectIdPrefix = formType === 'add' ? 'schedule_time_' : 'edit_schedule_time_';
+        let mainTeacherSelectId;
+        if (formType === 'add') {
+            mainTeacherSelectId = 'new_teacher_name';
+        } else if (formType === 'edit') {
+            mainTeacherSelectId = 'edit_teacher_name';
+        } else if (formType === 'update') {
+            return; 
+        }
+
+        const systemTypeSelect = document.getElementById(systemTypeSelectId);
+        const selectedSystem = systemTypeSelect.value;
+        const scheduleContainer = document.getElementById(scheduleContainerId);
+        scheduleContainer.innerHTML = '';
+
+        let numberOfSchedules = getMonthlyMaxClassesForForm(selectedSystem);
+
+        const mainTeacherName = document.getElementById(mainTeacherSelectId).value;
+        if (!mainTeacherName && numberOfSchedules > 0) {
+            M.toast({html: 'الرجاء اختيار المعلم الأساسي أولاً.', classes: 'red darken-3'});
+            return;
+        }
+
+        for (let i = 0; i < numberOfSchedules; i++) {
+            const scheduleGroup = document.createElement('div');
+            scheduleGroup.className = 'schedule-input-group';
+            const removeButtonHtml = formType === 'edit' && initialSchedules[i] ? 
+                                     `<button class="btn red waves-effect waves-light remove-schedule-btn" type="button" onclick="removeScheduleField(${i})">
+                                        <i class="material-icons right">close</i>حذف الميعاد
+                                      </button>` : '';
+
+            scheduleGroup.innerHTML = `
+                <h6>الميعاد رقم ${i + 1}</h6>
+                <div class="row">
+                    <div class="input-field col s6">
+                        <select id="${teacherSelectIdPrefix}${i}" class="teacher-select" onchange="updateDayOptions(${i}, '${formType}')" required>
+                            <option value="${mainTeacherName}" selected>${mainTeacherName}</option>
+                        </select>
+                        <label>المعلم</label>
+                    </div>
+                    <div class="input-field col s6">
+                        <select id="${daySelectIdPrefix}${i}" class="day-select" onchange="updateTimeOptions(${i}, '${formType}')" required>
+                            <option value="" disabled selected>اختر اليوم</option>
+                            </select>
+                        <label>اليوم</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <select id="${timeSelectIdPrefix}${i}" class="time-select" required>
+                            <option value="" disabled selected>اختر الميعاد</option>
+                            </select>
+                        <label>الميعاد</label>
+                    </div>
+                </div>
+                ${removeButtonHtml}
+            `;
+            scheduleContainer.appendChild(scheduleGroup);
+            
+            M.FormSelect.init(scheduleGroup.querySelector(`#${teacherSelectIdPrefix}${i}`));
+            M.FormSelect.init(scheduleGroup.querySelector(`#${daySelectIdPrefix}${i}`));
+            M.FormSelect.init(scheduleGroup.querySelector(`#${timeSelectIdPrefix}${i}`));
+            
+            if (formType === 'edit' && initialSchedules[i]) {
+                document.getElementById(`${teacherSelectIdPrefix}${i}`).value = initialSchedules[i].teacherName;
+                M.FormSelect.init(document.getElementById(`${teacherSelectIdPrefix}${i}`));
+                
+                updateDayOptions(i, formType, initialSchedules[i].day);
+            } else if (mainTeacherName) {
+                updateDayOptions(i, formType);
+            }
+        }
+        if (formType === 'edit' && initialSchedules.length > 0) {
+            initialSchedules.forEach((schedule, idx) => {
+                if (idx < numberOfSchedules) {
+                    document.getElementById(`${timeSelectIdPrefix}${idx}`).value = schedule.time;
+                    M.FormSelect.init(document.getElementById(`${timeSelectIdPrefix}${idx}`));
+                }
+            });
+        }
+        M.updateTextFields();
+    }
+    
+    function removeScheduleField(index) {
+        const scheduleContainerId = 'editScheduleFieldsContainer';
+        const scheduleGroup = document.getElementById(scheduleContainerId).children[index];
+        if (scheduleGroup) {
+            scheduleGroup.remove();
+            M.toast({html: 'تم حذف الميعاد من الواجهة. اضغط حفظ التعديلات لتأكيد التغيير.', classes: 'green darken-1'});
+        }
+    }
+
+
+    // -----------------------------------------------------------
+    // دوال تحميل البيانات للمعلمين والمواعيد (تم دمجها في setupTeacherAndScheduleDropdowns)
+    // -----------------------------------------------------------
+    function updateDayOptions(index, formType, initialDay = null) {
+        const teacherSelectIdPrefix = formType === 'add' ? 'schedule_teacher_' : 'edit_schedule_teacher_';
+        const daySelectIdPrefix = formType === 'add' ? 'schedule_day_' : 'edit_schedule_day_';
+        const timeSelectIdPrefix = formType === 'add' ? 'schedule_time_' : 'edit_schedule_time_';
+
+        const teacherName = document.getElementById(`${teacherSelectIdPrefix}${index}`).value;
+        const daySelect = document.getElementById(`${daySelectIdPrefix}${index}`);
+        daySelect.innerHTML = '<option value="" disabled selected>اختر اليوم</option>';
+
+        if (teacherName && availableSchedules[teacherName]) {
+            const days = Object.keys(availableSchedules[teacherName]);
+            days.forEach(day => {
+                const option = document.createElement('option');
+                option.value = day;
+                option.textContent = day;
+                daySelect.appendChild(option);
+            });
+        }
+        document.getElementById(`${daySelectIdPrefix}${index}`).value = initialDay;
+        M.FormSelect.init(daySelect);
+        if (initialDay) {
+            updateTimeOptions(index, formType);
+        }
+    }
+
+    function updateTimeOptions(index, formType) {
+        const teacherSelectIdPrefix = formType === 'add' ? 'schedule_teacher_' : 'edit_schedule_teacher_';
+        const daySelectIdPrefix = formType === 'add' ? 'schedule_day_' : 'edit_schedule_day_';
+        const timeSelectIdPrefix = formType === 'add' ? 'schedule_time_' : 'edit_schedule_time_';
+
+        const teacherName = document.getElementById(`${teacherSelectIdPrefix}${index}`).value;
+        const dayName = document.getElementById(`${daySelectIdPrefix}${index}`).value;
+        const timeSelect = document.getElementById(`${timeSelectIdPrefix}${index}`);
+        timeSelect.innerHTML = '<option value="" disabled selected>اختر الميعاد</option>';
+
+        if (teacherName && dayName && availableSchedules[teacherName] && availableSchedules[teacherName][dayName]) {
+            const times = availableSchedules[teacherName][dayName];
+            times.forEach(time => {
+                const option = document.createElement('option');
+                option.value = time;
+                option.textContent = time;
+                timeSelect.appendChild(option);
+            });
+        }
+        M.FormSelect.init(timeSelect);
+    }
+
+
+    // -----------------------------------------------------------
+    // دوال صفحة تعديل / حذف طالب
+    // -----------------------------------------------------------
+
+    let currentEditedStudent = null;
+
+    function searchStudentAndDisplay() {
+        const query = document.getElementById('edit_student_query').value.trim();
+        if (!query) {
+            M.toast({html: 'الرجاء إدخال معرف الطالب أو رقم الهاتف.', classes: 'red darken-3'});
+            return;
+        }
+
+        M.toast({html: 'جاري البحث عن الطالب...', classes: 'blue lighten-1'});
+        google.script.run
+            .withSuccessHandler(function(jsonString) {
+                if (jsonString) {
+                    const studentData = JSON.parse(jsonString);
+                    currentEditedStudent = studentData;
+                    displayStudentForEdit(studentData);
+                } else {
+                    M.toast({html: 'لم يتم العثور على الطالب.', classes: 'red darken-3'});
+                    document.getElementById('editStudentDetails').style.display = 'none';
+                }
+            })
+            .withFailureHandler(onFailure)
+            .searchStudent(query);
+    }
+
+    function displayStudentForEdit(studentData) {
+        document.getElementById('edit_student_id').value = studentData.id;
+        document.getElementById('edit_student_master_row').value = studentData.masterRow;
+        document.getElementById('edit_student_subscription_date').value = studentData.subscriptionDate;
+        document.getElementById('edit_student_name').value = studentData.name;
+        document.getElementById('edit_student_age').value = studentData.age;
+        document.getElementById('edit_student_number').value = studentData.number;
+
+        setupTeacherAndScheduleDropdowns('edit', studentData);
+
+        document.getElementById('editStudentDetails').style.display = 'block';
+        M.updateTextFields();
+    }
+
+    function handleUpdateStudent(event) {
+        event.preventDefault();
+
+        if (!currentEditedStudent) {
+            M.toast({html: 'لم يتم تحميل بيانات الطالب للتعديل.', classes: 'red darken-3'});
+            return;
+        }
+
+        const updatedStudentData = {
+            id: document.getElementById('edit_student_id').value,
+            masterRow: parseInt(document.getElementById('edit_student_master_row').value),
+            subscriptionDate: document.getElementById('edit_student_subscription_date').value,
+            name: document.getElementById('edit_student_name').value,
+            age: document.getElementById('edit_student_age').value,
+            number: document.getElementById('edit_student_number').value,
+            subscriptionType: document.getElementById('edit_subscription_type').value,
+            systemType: document.getElementById('edit_system_type').value,
+            schedules: []
+        };
+
+        const numberOfSchedules = getMonthlyMaxClassesForForm(updatedStudentData.systemType);
+        const scheduleContainer = document.getElementById('editScheduleFieldsContainer');
+        for (let i = 0; i < numberOfSchedules; i++) {
+            const teacherSelect = scheduleContainer.querySelector(`#edit_schedule_teacher_${i}`);
+            const daySelect = scheduleContainer.querySelector(`#edit_schedule_day_${i}`);
+            const timeSelect = scheduleContainer.querySelector(`#edit_schedule_time_${i}`);
+
+            if (!teacherSelect || !daySelect || !timeSelect) {
+                 continue;
+            }
+
+            const teacherName = teacherSelect.value;
+            const day = daySelect.value;
+            const time = timeSelect.value;
+
+            if (!teacherName || !day || !time) {
+                M.toast({html: `الرجاء اختيار المعلم واليوم والميعاد لجميع الحصص المطلوبة (ميعاد رقم ${i + 1}).`, classes: 'red darken-3'});
+                return;
+            }
+            updatedStudentData.schedules.push({ teacherName, day, time });
+        }
+        
+        M.toast({html: 'جاري حفظ التعديلات...', classes: 'blue lighten-1'});
+        google.script.run
+            .withSuccessHandler(function(response) {
+                if (response.status === "success") {
+                    M.toast({html: `تم حفظ تعديلات الطالب ${updatedStudentData.id} بنجاح.`, classes: 'green darken-1'});
+                    goHome();
+                } else {
+                    M.toast({html: `خطأ في حفظ التعديلات: ${response.message}`, classes: 'red darken-3'});
+                }
+            })
+            .withFailureHandler(onFailure)
+            .updateStudent(updatedStudentData);
+    }
+
+    function promptDeleteStudent() {
+        const studentId = document.getElementById('edit_student_id').value;
+        const studentName = document.getElementById('edit_student_name').value;
+        const reason = prompt(`هل أنت متأكد من حذف الطالب ${studentName} (${studentId})؟\n\nالرجاء إدخال سبب الحذف (اختياري):`);
+
+        if (reason !== null) {
+            M.toast({html: `جاري حذف الطالب ${studentId}...`, classes: 'orange darken-2'});
+            google.script.run
+                .withSuccessHandler(function(response) {
+                    if (response.status === "success") {
+                        M.toast({html: `تم حذف الطالب ${studentId} بنجاح.`, classes: 'green darken-1'});
+                        goHome();
+                    } else {
+                        M.toast({html: `خطأ في حذف الطالب: ${response.message}`, classes: 'red darken-3'});
+                    }
+                })
+                .withFailureHandler(onFailure)
+                .deleteStudent(studentId, reason);
+        }
+    }
+
+    // -----------------------------------------------------------
+    // دوال لإضافة طالب جديد (مُعدلة لدعم تهيئة المعلمين)
+    // -----------------------------------------------------------
+
+    function handleNewStudentSubmit(event) {
+        event.preventDefault();
+
+        const studentData = {
+            name: document.getElementById('new_student_name').value,
+            age: document.getElementById('new_student_age').value,
+            number: document.getElementById('new_student_number').value,
+            subscriptionType: document.getElementById('new_subscription_type').value,
+            systemType: document.getElementById('new_system_type').value,
+            schedules: []
+        };
+
+        const numberOfSchedules = getMonthlyMaxClassesForForm(studentData.systemType);
+        const scheduleContainer = document.getElementById('addScheduleFieldsContainer');
+        for (let i = 0; i < numberOfSchedules; i++) {
+            const teacherName = scheduleContainer.querySelector(`#schedule_teacher_${i}`).value;
+            const day = scheduleContainer.querySelector(`#schedule_day_${i}`).value;
+            const time = scheduleContainer.querySelector(`#schedule_time_${i}`).value;
+
+            if (!teacherName || !day || !time) {
+                M.toast({html: `الرجاء اختيار المعلم واليوم والميعاد لجميع الحصص المطلوبة (ميعاد رقم ${i + 1}).`, classes: 'red darken-3'});
+                return;
+            }
+            studentData.schedules.push({ teacherName, day, time });
+        }
+
+        M.toast({html: 'جاري إضافة الطالب الجديد...', classes: 'blue lighten-1'});
+        google.script.run
+            .withSuccessHandler(function(response) {
+                if (response.status === "success") {
+                    M.toast({html: `تم إضافة الطالب بنجاح! المعرف: ${response.studentId}`, classes: 'green darken-1'});
+                    goHome();
+                } else {
+                    M.toast({html: `خطأ في إضافة الطالب: ${response.message}`, classes: 'red darken-3'});
+                }
+            })
+            .withFailureHandler(onFailure)
+            .addNewStudent(studentData);
+    }
+
+    // تحميل الطلاب عند فتح الواجهة
+    document.addEventListener('DOMContentLoaded', function() {
+        goHome();
+    });
+  </script>
+</body>
+</html>
