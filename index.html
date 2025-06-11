@@ -3,48 +3,109 @@
 <head>
   <base target="_top">
   <title>إدارة حالات تجديد الطلاب</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
   <style>
-    /* CSS: إصلاح RTL وتنسيقات Materialize */
+    /* Global Styles & RTL Fixes */
     html, body {
-      font-family: 'Arial', sans-serif;
-      background-color: #f4f4f4;
-      padding: 20px;
-      direction: rtl; /* اتجاه من اليمين لليسار */
-      text-align: right; /* محاذاة النص لليمين افتراضياً */
+      font-family: 'Roboto', 'Arial', sans-serif; /* Prefer Roboto for Material, fallback to Arial */
+      background-color: #f0f2f5; /* Light grey background for modern feel */
+      padding: 0; /* Remove body padding, container will handle it */
+      margin: 0;
+      direction: rtl; /* Right-to-Left direction */
+      text-align: right; /* Default text alignment */
     }
+
+    /* Navbar Styling */
+    nav {
+      background-color: #1a237e; /* Darker blue for a professional look */
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 0 20px; /* Add some horizontal padding to the nav itself */
+      position: relative; /* Ensure relative positioning for absolute children */
+      height: 64px; /* Default Materialize Navbar height */
+      line-height: 64px; /* Ensure content is vertically centered */
+    }
+    nav .nav-wrapper {
+        position: relative; /* Essential for absolute positioning inside */
+        height: 100%; /* Fill parent height */
+        display: flex; /* Use flexbox for better alignment */
+        align-items: center; /* Vertically center items */
+        justify-content: space-between; /* Space out items */
+    }
+    nav .brand-logo {
+      /* Adjusted for better positioning in RTL */
+      position: static; /* Remove absolute positioning on large screens */
+      transform: none; /* Remove transform */
+      right: auto; /* Reset right */
+      left: auto; /* Reset left */
+      font-weight: 500;
+      font-size: 1.8rem;
+      padding-right: 0; /* Remove extra padding */
+      margin-right: 0; /* Remove extra margin */
+      order: 2; /* Order for flexbox: put logo in center (visually) */
+      flex-grow: 1; /* Allow logo to take available space */
+      text-align: center; /* Center logo text */
+    }
+    nav ul.left { /* Targeting the ul that contains the 'الرئيسية' button */
+        position: static; /* Remove absolute positioning */
+        transform: none; /* Remove transform */
+        left: auto; /* Reset left */
+        right: auto; /* Reset right */
+        margin-left: 0;
+        padding-left: 0;
+        order: 1; /* Order for flexbox: put home button to the left */
+        display: flex; /* Ensure it's a flex container */
+        align-items: center;
+    }
+    nav ul.left li {
+        margin: 0;
+        padding: 0;
+    }
+    nav .waves-effect.waves-light.btn {
+      background-color: #3f51b5; /* Slightly lighter blue */
+      height: 36px; /* Standard button height */
+      line-height: 36px; /* Match height for vertical alignment */
+      padding: 0 15px; /* Adjust padding */
+    }
+    nav .waves-effect.waves-light.btn .material-icons {
+        line-height: 36px; /* Align icon vertically */
+    }
+
+    /* Main Container */
     .container {
       background-color: #fff;
       padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      margin-top: 30px;
+      border-radius: 12px; /* More rounded corners */
+      box-shadow: 0 6px 30px rgba(0,0,0,0.08); /* Softer, deeper shadow */
+      margin-top: 40px;
+      margin-bottom: 40px;
+      max-width: 1200px; /* Limit max width for readability */
+      /* Center the container */
+      margin-left: auto;
+      margin-right: auto;
     }
+
     h4 {
       color: #333;
-      margin-bottom: 25px;
-      font-weight: bold;
+      margin-bottom: 30px; /* More space below heading */
+      font-weight: 700; /* Bolder */
+      border-bottom: 2px solid #e0e0e0; /* Subtle separator */
+      padding-bottom: 15px;
     }
-    /* تحسين تصميم الحقول المدخلة لـ RTL */
-    .input-field label {
-        right: 0.75rem; /* لغة عربية */
-        left: auto;
-    }
+
+    /* Input Field RTL adjustments (already good, small tweaks) */
+    .input-field label { right: 0.75rem; left: auto; }
     .input-field label:not(.label-icon).active {
         -webkit-transform: translateY(-14px) scale(0.8);
         transform: translateY(-14px) scale(0.8);
         right: 0.75rem !important;
         left: auto !important;
     }
-    .input-field .prefix {
-        right: 0.75rem;
-        left: auto;
-    }
-    .input-field input:focus + label {
-        right: 0.75rem !important;
-        left: auto !important;
-    }
+    .input-field .prefix { right: 0.75rem; left: auto; }
+    .input-field input:focus + label { right: 0.75rem !important; left: auto !important; }
     .input-field input[type=number]:not(.browser-default):focus:not([readonly]) + label,
     .input-field input[type=tel]:not(.browser-default):focus:not([readonly]) + label,
     .input-field input[type=text]:not(.browser-default):focus:not([readonly]) + label {
@@ -56,299 +117,613 @@
         border-bottom: 1px solid #2196f3;
         box-shadow: 0 1px 0 0 #2196f3;
     }
-    /* Fix for Materialize Selects in RTL */
     .select-wrapper input.select-dropdown {
         text-align: right;
         padding-right: 0.75rem !important;
-        padding-left: 3rem !important; /* To make space for the dropdown arrow */
+        padding-left: 3rem !important;
     }
-    .caret {
-        left: 0.75rem !important;
-        right: auto !important;
-    }
-    .dropdown-content li>a, .dropdown-content li>span {
-        text-align: right;
-    }
+    .caret { left: 0.75rem !important; right: auto !important; }
+    .dropdown-content li>a, .dropdown-content li>span { text-align: right; }
 
-    /* تنسيق الجدول */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 30px;
-    }
-    th, td {
-      padding: 12px 15px;
-      text-align: right;
-      border-bottom: 1px solid #e0e0e0;
-    }
-    th {
-      background-color: #f8f8f8;
-      font-weight: bold;
-      color: #555;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-    tr:hover {
-      background-color: #f0f0f0;
-    }
-    .status-tag {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-weight: bold;
-      color: white;
-      display: inline-block;
-      min-width: 120px;
-      text-align: center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-    }
-    .status-مطلوب-التجديد { background-color: #ffb300; }
-    .status-تم-التجديد { background-color: #43a047; }
-    .status-تجاوز-الحد { background-color: #d32f2f; }
-    .status-لا-يوجد-حضور { background-color: #757575; }
-    .status-غير-محدد, .status- { background-color: #1976d2; }
-    .actions-cell button {
-        margin-left: 10px;
-        float: left; /* Keep float left for RTL button grouping */
-    }
-    .actions-cell button:first-child {
-        margin-left: 0;
-    }
-    .center-align {
-        text-align: center;
-    }
-    .right-align {
-        text-align: right;
-    }
-    .left-align { /* For elements that *must* be left-aligned */
-        text-align: left;
-    }
+    /* Button Grouping */
     .button-group {
         display: flex;
         justify-content: flex-end; /* Align buttons to the right in RTL */
         gap: 10px;
+        margin-top: 20px;
     }
+    .button-group-form {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 30px; /* More space for form buttons */
+    }
+
+    /* Main Navigation Buttons */
     .main-buttons {
-        text-align: center;
-        margin-bottom: 30px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+        gap: 20px; /* Space between buttons */
+        margin-bottom: 40px; /* More space below main buttons */
+        padding: 20px;
+        background-color: #e8eaf6; /* Lighter blue background for main buttons section */
+        border-radius: 8px;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        justify-items: center; /* Center items within their grid cells */
     }
     .main-buttons button {
-        margin: 0 10px;
+        height: 80px; /* Taller buttons */
+        font-size: 1.1em;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px; /* Space between icon and text */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        width: 100%; 
+        max-width: 280px; /* Limit max width for readability and prevent excessive stretching */
     }
-    /* إخفاء عناصر الفلترة والجدول في البداية */
-    #studentListContainer, #addStudentForm, #editDeleteStudentContainer, #updateSchedulesContainer, #manageStudentsContainer {
-        display: none; 
+    .main-buttons button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     }
-    /* ستايلات إضافية للفورم */
-    .form-section { /* تم تعميم ستايلات الفورم */
-        padding: 20px;
-        border-top: 1px solid #eee;
-        margin-top: 30px;
-        background-color: #f9f9f9;
-        border-radius: 8px;
+    .main-buttons button .material-icons {
+        font-size: 2em; /* Larger icons */
+    }
+
+    /* Section Styles */
+    .form-section {
+        background-color: #ffffff; /* White background for forms */
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05); /* Lighter shadow */
+        margin-top: 40px; /* More margin from top */
+        border: 1px solid #e0e0e0; /* Subtle border */
     }
     .form-section h5 {
-        margin-bottom: 20px;
-        color: #424242;
+        color: #3f51b5; /* Materialize primary blue for section titles */
+        margin-bottom: 25px;
+        font-weight: 500;
+        border-bottom: 1px solid #eeeeee;
+        padding-bottom: 10px;
     }
+
+    /* Schedule Input Group */
     .schedule-input-group {
-        border: 1px dashed #ccc;
-        padding: 15px;
-        margin-bottom: 15px;
+        border: 1px dashed #bdbdbd; /* Slightly darker dash */
+        padding: 20px; /* More padding */
+        margin-bottom: 20px; /* More margin */
         border-radius: 8px;
+        background-color: #fdfdfd; /* Very light background */
     }
     .schedule-input-group h6 {
         margin-top: 0;
         margin-bottom: 15px;
         color: #555;
-    }
-    .button-group-form {
-        display: flex;
-        gap: 10px;
-        justify-content: flex-end;
-        margin-top: 20px;
-    }
-    /* ستايلات خاصة لصفحة التعديل والحذف */
-    #editDeleteStudentContainer .student-details-form {
-        margin-bottom: 30px;
-    }
-    #editDeleteStudentContainer .schedule-input-group {
-        border-style: solid; /* تغيير نوع الحدود */
-        border-color: #a7a7a7;
-    }
-    #editDeleteStudentContainer .remove-schedule-btn {
-        margin-top: 10px; /* مسافة من أعلى */
-        width: 100%; /* زرار على عرض الحاوية */
+        font-weight: 500;
+        font-size: 1.1em;
     }
 
-    /* ستايلات لصفحة تحديث المواعيد */
+    /* Table Styling (General for both renewal and manage) */
+    table {
+      width: 100%; /* Keep width 100% to fill container */
+      border-collapse: collapse;
+      margin-top: 30px;
+      background-color: #ffffff;
+      border-radius: 8px;
+    }
+    th, td {
+      padding: 15px 20px; /* More padding */
+      text-align: right;
+      border-bottom: 1px solid #e0e0e0;
+      /* white-space: normal; - سيتم تطبيقه في media queries للهواتف */
+    }
+    th {
+      background-color: #f5f5f5; /* Lighter header background */
+      font-weight: 600;
+      color: #424242;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tr:hover {
+      background-color: #fafafa; /* Subtle hover effect */
+    }
+    
+    /* Container for responsive tables to ensure horizontal scroll */
+    .table-scroll-wrapper {
+      /* Removed overflow-x: auto from here, will be applied in media queries */
+      -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS devices */
+      margin-bottom: 20px; /* Add some space below the table if it scrolls */
+      padding-bottom: 10px; /* Ensure scrollbar is visible and not hidden */
+    }
+
+    /* Status Tags */
+    .status-tag {
+      padding: 8px 15px; /* Larger padding */
+      border-radius: 25px; /* More rounded */
+      font-weight: 600;
+      color: white;
+      display: inline-block;
+      min-width: 100px; /* Consistent width */
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Softer shadow */
+      text-shadow: 0 1px 1px rgba(0,0,0,0.2); /* Subtle text shadow */
+    }
+    /* Colors remain same for status */
+    .status-مطلوب-التجديد { background-color: #ffb300; } /* Amber */
+    .status-تم-التجديد { background-color: #43a047; } /* Green */
+    .status-تجاوز-الحد { background-color: #d32f2f; } /* Red */
+    .status-لا-يوجد-حضور { background-color: #757575; } /* Grey */
+    .status-غير-محدد, .status- { background-color: #1976d2; } /* Blue */
+
+    /* Actions Cell - Default for larger screens */
+    .actions-cell button {
+        margin-right: 5px; /* Space between action buttons (RTL) */
+        margin-left: 0;
+        display: inline-flex; /* Use inline-flex for icon-only buttons */
+        align-items: center;
+        justify-content: center;
+        width: 36px; /* Fixed width for icon button */
+        height: 36px; /* Fixed height for icon button */
+        padding: 0; /* No padding needed for icon-only button */
+        line-height: 1; /* Adjust line height */
+    }
+    .actions-cell button .material-icons {
+        font-size: 1.5em; /* Icon size for standard button */
+    }
+    .actions-cell {
+        display: flex;
+        justify-content: flex-start; /* Align action buttons to left in RTL */
+        gap: 8px;
+        flex-wrap: nowrap; /* Prevent wrapping by default */
+    }
+
+    /* Filter Section */
+    .filter-section {
+        display: flex;
+        align-items: flex-end;
+        gap: 15px;
+        margin-bottom: 30px;
+        flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    }
+    .filter-section .input-field {
+        flex-grow: 1; /* Allow input to grow */
+        margin-bottom: 0; /* Remove default margin */
+    }
+    .filter-section button {
+        white-space: nowrap; /* Prevent button text from wrapping */
+    }
+
+    /* Time Selection Modal */
     .time-selection-modal {
-        background-color: #fff;
-        padding: 25px;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        width: 90%;
-        max-width: 500px; /* حجم معقول */
-        max-height: 80vh; /* ارتفاع أقصى */
-        overflow-y: auto;
+        padding: 35px; /* More padding */
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15); /* Stronger shadow */
+        max-width: 600px; /* Slightly wider modal */
     }
     .time-selection-modal h3 {
         margin-top: 0;
+        margin-bottom: 25px;
+        font-weight: 700;
         color: #333;
-        font-weight: bold;
-        margin-bottom: 20px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+    }
+    .slots-section {
+        margin-top: 25px;
+        padding: 20px;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.05); /* Subtle shadow for sections */
+        border: 1px solid #f0f0f0;
+    }
+    .slots-section h4 {
+        font-size: 1.1em;
+        margin-bottom: 15px;
+        color: #555;
+        font-weight: 600;
+        border-bottom: none; /* No border for sub-headers */
+        padding-bottom: 0;
     }
     .time-slots-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px; /* مسافة بين الأزرار */
-        margin-bottom: 15px;
-        direction: ltr; /* لضمان عرض الأوقات من اليسار لليمين */
-        justify-content: flex-start; /* محاذاة لليسار */
+        display: grid; /* Use grid for better alignment */
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Responsive columns */
+        gap: 10px; /* More space */
+        margin-top: 15px;
+        direction: ltr; /* Ensure times are left-to-right */
+        justify-content: flex-start;
     }
     .time-slot-chip {
-        padding: 8px 12px;
-        border-radius: 20px;
-        border: 1px solid #ccc;
-        background-color: #f0f0f0;
-        color: #333;
-        cursor: pointer;
-        transition: background-color 0.3s, border-color 0.3s;
-        font-size: 0.9em;
+        padding: 10px 15px; /* Larger padding */
+        border-radius: 25px; /* More rounded */
+        font-size: 0.95em;
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.1s ease;
+        text-align: center;
+        white-space: nowrap; /* Prevent wrapping */
+    }
+    .time-slot-chip:hover:not(.disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .time-slot-chip.selected {
-        background-color: #2196f3;
+        background-color: #2196f3; /* Blue */
         color: white;
         border-color: #2196f3;
+        box-shadow: 0 2px 5px rgba(33,150,243,0.3);
     }
     .time-slot-chip.disabled {
         background-color: #e0e0e0;
         color: #9e9e9e;
         cursor: not-allowed;
-        border-color: #bbb;
-    }
-    .slots-section h4 {
-        font-size: 1.2em;
-        margin-bottom: 15px;
-        color: #555;
+        border-color: #ccc;
+        opacity: 0.7;
     }
     .no-slots-message {
         text-align: center;
         color: #888;
-        padding: 10px;
+        padding: 20px;
+        font-style: italic;
     }
     .modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 20px;
+        margin-top: 30px; /* More space */
     }
 
-    /* ستايلات لصفحة تحديث المواعيد */
-    #updateSchedulesContainer .teacher-selection-section {
-        margin-bottom: 25px;
-    }
+    /* Teacher Schedules Update Page */
     #updateSchedulesContainer .days-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 15px;
-        margin-top: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Larger day cards */
+        gap: 20px;
     }
     #updateSchedulesContainer .day-card {
-        background-color: #e3f2fd;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        text-align: center;
-        cursor: pointer;
-        transition: background-color 0.3s;
+        background-color: #e3f2fd; /* Light blue */
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.1); /* Slightly more prominent shadow */
+        transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
     }
     #updateSchedulesContainer .day-card:hover {
         background-color: #bbdefb;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 12px rgba(0,0,0,0.15);
     }
     #updateSchedulesContainer .day-card h6 {
-        margin-top: 0;
-        margin-bottom: 10px;
+        font-size: 1.3em; /* Larger day name */
         color: #1a237e;
+        margin-bottom: 15px;
     }
     #updateSchedulesContainer .day-card p {
-        font-size: 0.9em;
+        font-size: 0.95em;
         color: #424242;
+        margin-bottom: 10px;
     }
     #updateSchedulesContainer .day-card span.chip {
-        margin: 4px;
-        font-size: 0.8em;
+        margin: 5px;
+        font-size: 0.85em;
+        background-color: #ffffff;
+        color: #333;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
-    /* ستايلات لصفحة إدارة الطلاب */
-    #manageStudentsContainer {
-        display: none;
+    /* Summary Page Styles */
+    .summary-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Flexible columns for summary cards */
+        gap: 25px; /* Spacing between summary cards */
+        margin-top: 30px;
     }
+    .summary-card-item {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+        padding: 25px;
+        text-align: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: 1px solid #e0e0e0;
+    }
+    .summary-card-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+    .summary-card-item .material-icons {
+        font-size: 3.5em; /* Large icon size */
+        margin-bottom: 15px;
+    }
+    .summary-card-item h6 {
+        font-size: 1.5em; /* Larger title for statistic */
+        font-weight: 700;
+        color: #333;
+        margin-top: 0;
+        margin-bottom: 10px;
+    }
+    .summary-card-item p {
+        font-size: 1.1em;
+        color: #555;
+        margin-bottom: 0;
+    }
+    .summary-card-item .data-value {
+        font-size: 1.8em; /* Very large number */
+        font-weight: 800;
+        color: #2196f3; /* Primary blue for numbers */
+        display: block; /* Make it a block element for spacing */
+        margin-top: 5px;
+    }
+    /* Specific colors for summary cards */
+    .summary-card-total-students .material-icons { color: #4CAF50; /* Green */ }
+    .summary-card-total-students .data-value { color: #4CAF50; }
+    
+    .summary-card-renewal-needed .material-icons { color: #FFC107; /* Amber */ }
+    .summary-card-renewal-needed .data-value { color: #FFC107; }
 
+    .summary-card-payments .material-icons { color: #2196F3; /* Blue */ }
+    .summary-card-payments .data-value { color: #2196F3; }
+    
+    .summary-card-teachers .material-icons { color: #8BC34A; /* Light Green */ }
+    .summary-card-teachers .data-value { color: #8BC34A; }
+
+    .summary-card-slots .material-icons { color: #9C27B0; /* Purple */ }
+    .summary-card-slots .data-value { color: #9C27B0; }
+
+
+    /* Responsive Adjustments */
+    @media (max-width: 992px) {
+        /* Navbar Adjustments for medium screens */
+        nav .brand-logo {
+            font-size: 1.5rem;
+            text-align: right; /* Revert to right alignment for RTL */
+            flex-grow: 0; /* Don't stretch */
+        }
+        nav .nav-wrapper {
+            justify-content: flex-end; /* Push content to the right (RTL) */
+        }
+        nav ul.left {
+            position: absolute; /* Revert to absolute for exact left placement */
+            left: 20px; /* Keep to the left */
+            order: 0; /* Reset order */
+        }
+
+        .main-buttons {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+        .main-buttons button {
+            height: 70px;
+            font-size: 1em;
+            max-width: 100%; /* Allow buttons to stretch if needed */
+        }
+        .filter-section {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .filter-section button {
+            width: 100%;
+        }
+        
+        /* Table adjustments for medium screens - Allow content to wrap */
+        table th,
+        table td {
+            padding: 10px 15px; /* Less padding on medium screens */
+            font-size: 0.95em; /* Slightly smaller font */
+            white-space: normal; /* Allow content to wrap */
+        }
+        /* Actions cell adjustments for medium screens */
+        .actions-cell {
+            flex-wrap: wrap; /* Allow wrapping on medium screens */
+            justify-content: center; /* Center buttons if wrapped */
+            gap: 5px;
+        }
+        .actions-cell button {
+            /* Icon-only button adjustments for medium screens */
+            width: 32px; /* Slightly smaller fixed width */
+            height: 32px; /* Slightly smaller fixed height */
+        }
+        .actions-cell button .material-icons {
+            font-size: 1.3em; /* Adjust icon size */
+        }
+
+        /* Summary page for medium screens */
+        .summary-card-item h6 {
+            font-size: 1.3em;
+        }
+        .summary-card-item .data-value {
+            font-size: 1.6em;
+        }
+
+    }
+    @media (max-width: 600px) {
+        .container {
+            padding: 15px; /* Less padding on very small screens */
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        h4 {
+            font-size: 1.4em; /* Smaller main heading */
+            margin-bottom: 20px;
+        }
+        .main-buttons {
+            grid-template-columns: 1fr; /* Single column on small phones */
+            gap: 15px;
+            padding: 15px;
+        }
+        .main-buttons button {
+            height: 55px; /* Smaller button height */
+            font-size: 0.9em;
+            max-width: 100%; /* Ensure fills column */
+        }
+        .form-section {
+            padding: 15px;
+            margin-top: 25px;
+        }
+        .form-section h5 {
+            font-size: 1.2em; /* Smaller section heading */
+            margin-bottom: 15px;
+        }
+        .input-field label {
+            font-size: 0.9em; /* Smaller label font */
+        }
+        .input-field input, .select-wrapper input.select-dropdown {
+            font-size: 0.95em; /* Smaller input font */
+        }
+        .schedule-input-group {
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .schedule-input-group h6 {
+            font-size: 1em;
+        }
+        
+        /* Table adjustments for very small screens - Allow content to wrap */
+        table {
+            min-width: unset; /* Remove min-width to allow full responsiveness */
+            width: 100%; /* Ensure it tries to fit 100% */
+        }
+        table th,
+        table td {
+            padding: 8px 10px; /* Even less padding */
+            font-size: 0.8em; /* Even smaller font */
+            white-space: normal; /* Crucial: Allow content to wrap */
+        }
+        .status-tag {
+            padding: 5px 8px; /* Smaller status tags */
+            min-width: 70px;
+            font-size: 0.75em;
+        }
+        .actions-cell button {
+            /* Icon-only button adjustments for very small screens */
+            width: 30px; /* Smallest fixed width */
+            height: 30px; /* Smallest fixed height */
+        }
+        .actions-cell button .material-icons {
+            font-size: 1.2em; /* Adjust icon size */
+        }
+
+
+        .time-slots-grid {
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); /* Smaller chips */
+            gap: 8px;
+        }
+        .time-slot-chip {
+            padding: 8px 10px;
+            font-size: 0.85em;
+        }
+        .modal-content.time-selection-modal {
+            padding: 20px;
+        }
+        .modal-actions button {
+            font-size: 0.9em;
+            padding: 0 10px;
+        }
+        /* Navbar specific for very small screens */
+        nav .brand-logo {
+            font-size: 1.3rem; /* Even smaller on very small screens */
+            text-align: center; /* Keep centered */
+            width: 100%; /* Occupy full width to center effectively */
+            position: absolute; /* Revert to absolute for centering */
+            left: 0;
+            right: 0;
+        }
+        nav ul.left {
+            display: none; /* Hide the home button on very small screens if it interferes */
+        }
+        /* Make sure search input is full width in filter section */
+        .filter-section .input-field.filter-input {
+            width: 100%;
+        }
+
+        /* Summary page for very small screens */
+        .summary-cards-grid {
+            grid-template-columns: 1fr; /* Single column on very small screens */
+            gap: 15px;
+        }
+        .summary-card-item {
+            padding: 20px;
+        }
+        .summary-card-item .material-icons {
+            font-size: 3em;
+        }
+        .summary-card-item h6 {
+            font-size: 1.2em;
+        }
+        .summary-card-item .data-value {
+            font-size: 1.5em;
+        }
+    }
   </style>
 </head>
 <body>
+  <nav>
+    <div class="nav-wrapper container">
+      <a href="#" class="brand-logo">إدارة أكاديمية رفاق</a>
+      <ul id="nav-mobile" class="left hide-on-med-and-down">
+        <li><button class="btn waves-effect waves-light blue lighten-1" onclick="goHome()">
+            <i class="material-icons right">home</i>الرئيسية
+        </button></li>
+      </ul>
+    </div>
+  </nav>
+
   <div class="container">
-    <h4 class="center-align">إدارة حالات تجديد الطلاب</h4>
+    <h4 class="center-align">لوحة تحكم المشرف</h4>
 
     <div id="mainButtons" class="main-buttons">
-        <button class="btn waves-effect waves-light green" onclick="showAddStudentForm()">
+        <button class="btn waves-effect waves-light green darken-1" onclick="showAddStudentForm()">
             <i class="material-icons right">person_add</i>إضافة طالب جديد
         </button>
-        <button class="btn waves-effect waves-light blue" onclick="showRenewalList()">
+        <button class="btn waves-effect waves-light blue darken-1" onclick="showRenewalList()">
             <i class="material-icons right">view_list</i>عرض التجديدات
         </button>
-        <button class="btn waves-effect waves-light orange" onclick="showEditDeleteStudentForm()">
+        <button class="btn waves-effect waves-light orange darken-1" onclick="showEditDeleteStudentForm()">
             <i class="material-icons right">edit</i>تعديل / حذف طالب
         </button>
-        <button class="btn waves-effect waves-light purple" onclick="showUpdateSchedulesForm()">
+        <button class="btn waves-effect waves-light purple darken-1" onclick="showUpdateSchedulesForm()">
             <i class="material-icons right">schedule</i>تحديث مواعيد المعلمين
         </button>
-        <button class="btn waves-effect waves-light teal" onclick="showManageStudentsList()">
+        <button class="btn waves-effect waves-light teal darken-1" onclick="showManageStudentsList()">
             <i class="material-icons right">people</i>إدارة الطلاب
+        </button>
+        <button class="btn waves-effect waves-light deep-purple darken-1" onclick="showSummaryPage()">
+            <i class="material-icons right">dashboard</i>ملخص الأكاديمية
         </button>
     </div>
 
-    <div id="studentListContainer">
+    <div id="studentListContainer" class="form-section">
+        <h5 class="center-align">قائمة تجديد الطلاب</h5>
         <div class="filter-section">
             <div class="input-field filter-input">
                 <i class="material-icons prefix">search</i>
                 <input type="text" id="studentSearch" onkeyup="filterStudents()" class="validate">
                 <label for="studentSearch">ابحث بالمعرف أو الاسم أو النظام</label>
             </div>
-            <button class="btn waves-effect waves-light blue" onclick="loadStudents()">
+            <button class="btn waves-effect waves-light blue lighten-1" onclick="loadStudents()">
                 <i class="material-icons right">refresh</i>تحديث البيانات
             </button>
-            <button class="btn waves-effect waves-light grey" type="button" onclick="goHome()">
+            <button class="btn waves-effect waves-light grey lighten-1" type="button" onclick="goHome()">
                 <i class="material-icons right">home</i>الرئيسية
             </button>
         </div>
-
         <div id="studentList">
           <p class="center-align">جاري تحميل بيانات الطلاب...</p>
         </div>
     </div>
 
-
     <div id="addStudentForm" class="row form-section">
         <h5 class="center-align">إضافة طالب جديد</h5>
         <form class="col s12" onsubmit="handleNewStudentSubmit(event)">
             <div class="row">
-                <div class="input-field col s6">
+                <div class="input-field col s12 m6">
                     <input id="new_student_name" type="text" class="validate" required>
                     <label for="new_student_name">الاسم</label>
                 </div>
-                <div class="input-field col s6">
+                <div class="input-field col s12 m6">
                     <input id="new_student_age" type="number" class="validate">
                     <label for="new_student_age">السن</label>
                 </div>
             </div>
             <div class="row">
-                <div class="input-field col s6">
+                <div class="input-field col s12 m6">
                     <input id="new_student_number" type="tel" class="validate">
                     <label for="new_student_number">رقم التليفون</label>
                 </div>
-                <div class="input-field col s6">
+                <div class="input-field col s12 m6">
                     <select id="new_subscription_type" required>
                         <option value="" disabled selected>اختر نوع الاشتراك</option>
                         <option value="فردي صغار">فردي صغار</option>
@@ -382,7 +757,7 @@
                 <div class="input-field col s12">
                     <select id="new_teacher_name" required onchange="updateScheduleFields('add')">
                         <option value="" disabled selected>اختر المعلم الأساسي للطالب</option>
-                        </select>
+                    </select>
                     <label>المعلم الأساسي</label>
                 </div>
             </div>
@@ -394,7 +769,7 @@
                 <button class="btn waves-effect waves-light blue" type="submit">
                     <i class="material-icons right">send</i>إضافة الطالب
                 </button>
-                <button class="btn waves-effect waves-light red" type="button" onclick="goHome()">
+                <button class="btn waves-effect waves-light red lighten-1" type="button" onclick="goHome()">
                     <i class="material-icons right">cancel</i>إلغاء
                 </button>
             </div>
@@ -420,22 +795,23 @@
             <form class="col s12" onsubmit="handleUpdateStudent(event)">
                 <input type="hidden" id="edit_student_id">
                 <input type="hidden" id="edit_student_master_row">
-                <input type="hidden" id="edit_student_subscription_date"> <div class="row student-details-form">
-                    <div class="input-field col s6">
+                <input type="hidden" id="edit_student_subscription_date"> 
+                <div class="row student-details-form">
+                    <div class="input-field col s12 m6">
                         <input id="edit_student_name" type="text" class="validate" required>
                         <label for="edit_student_name">الاسم</label>
                     </div>
-                    <div class="input-field col s6">
+                    <div class="input-field col s12 m6">
                         <input id="edit_student_age" type="number" class="validate">
                         <label for="edit_student_age">السن</label>
                     </div>
                 </div>
                 <div class="row">
-                    <div class="input-field col s6">
+                    <div class="input-field col s12 m6">
                         <input id="edit_student_number" type="tel" class="validate">
                         <label for="edit_student_number">رقم التليفون</label>
                     </div>
-                    <div class="input-field col s6">
+                    <div class="input-field col s12 m6">
                         <select id="edit_subscription_type" required>
                             <option value="" disabled selected>اختر نوع الاشتراك</option>
                             <option value="فردي صغار">فردي صغار</option>
@@ -469,7 +845,7 @@
                     <div class="input-field col s12">
                         <select id="edit_teacher_name" required onchange="updateScheduleFields('edit')">
                             <option value="" disabled selected>اختر المعلم الأساسي للطالب</option>
-                            </select>
+                        </select>
                         <label>المعلم الأساسي</label>
                     </div>
                 </div>
@@ -484,7 +860,7 @@
                     <button class="btn waves-effect waves-light red darken-2" type="button" onclick="promptDeleteStudent()">
                         <i class="material-icons right">delete_forever</i>حذف الطالب
                     </button>
-                    <button class="btn waves-effect waves-light grey" type="button" onclick="goHome()">
+                    <button class="btn waves-effect waves-light grey lighten-1" type="button" onclick="goHome()">
                         <i class="material-icons right">cancel</i>إلغاء
                     </button>
                 </div>
@@ -498,7 +874,7 @@
             <div class="input-field col s12">
                 <select id="update_teacher_name" required onchange="displayTeacherSchedulesForUpdate()">
                     <option value="" disabled selected>اختر المعلم لتحديث مواعيده</option>
-                    </select>
+                </select>
                 <label>المعلم</label>
             </div>
         </div>
@@ -507,7 +883,7 @@
             <div class="days-grid">
                 </div>
             <div class="button-group-form">
-                <button class="btn waves-effect waves-light grey" type="button" onclick="goHome()">
+                <button class="btn waves-effect waves-light grey lighten-1" type="button" onclick="goHome()">
                     <i class="material-icons right">cancel</i>إلغاء
                 </button>
             </div>
@@ -515,17 +891,17 @@
     </div>
 
     <div id="manageStudentsContainer" class="row form-section">
-        <h5 class="center-align">إدارة الطلاب (تعديل / حذف)</h5>
+        <h5 class="center-align">إدارة الطلاب (تعديل / حذف شامل)</h5>
         <div class="filter-section">
             <div class="input-field filter-input">
                 <i class="material-icons prefix">search</i>
                 <input type="text" id="manage_student_search" onkeyup="filterManageStudents()" class="validate">
                 <label for="manage_student_search">ابحث بالمعرف أو الاسم أو الرقم</label>
             </div>
-            <button class="btn waves-effect waves-light blue" onclick="loadManageStudents()">
+            <button class="btn waves-effect waves-light blue lighten-1" onclick="loadManageStudents()">
                 <i class="material-icons right">refresh</i>تحديث القائمة
             </button>
-            <button class="btn waves-effect waves-light grey" type="button" onclick="goHome()">
+            <button class="btn waves-effect waves-light grey lighten-1" type="button" onclick="goHome()">
                 <i class="material-icons right">home</i>الرئيسية
             </button>
         </div>
@@ -535,11 +911,53 @@
         </div>
     </div>
 
+    <div id="summaryPageContainer" class="row form-section">
+        <h5 class="center-align">ملخص شامل للأكاديمية</h5>
+        <div class="summary-cards-grid">
+            <div class="summary-card-item summary-card-total-students">
+                <i class="material-icons">people</i>
+                <h6>إجمالي الطلاب</h6>
+                <span class="data-value" id="totalStudentsSummary">--</span>
+                <p>طلاب نشطون: <span id="activeStudentsSummary">--</span></p>
+            </div>
+            <div class="summary-card-item summary-card-renewal-needed">
+                <i class="material-icons">refresh</i>
+                <h6>يحتاجون للتجديد</h6>
+                <span class="data-value" id="renewalNeededSummary">--</span>
+                <p>تجاوزوا الحد: <span id="overdueRenewalSummary">--</span></p>
+            </div>
+            <div class="summary-card-item summary-card-payments">
+                <i class="material-icons">attach_money</i>
+                <h6>دفعات هذا الشهر</h6>
+                <span class="data-value" id="monthlyPaymentsSummary">--</span>
+                <p>إجمالي دفعات العام: <span id="yearlyPaymentsSummary">--</span></p>
+            </div>
+            <div class="summary-card-item summary-card-teachers">
+                <i class="material-icons">group</i>
+                <h6>إجمالي المعلمين</h6>
+                <span class="data-value" id="totalTeachersSummary">--</span>
+                <p>معلمين نشطون: <span id="activeTeachersSummary">--</span></p>
+            </div>
+            <div class="summary-card-item summary-card-slots">
+                <i class="material-icons">event_available</i>
+                <h6>مواعيد متاحة</h6>
+                <span class="data-value" id="availableSlotsSummary">--</span>
+                <p>مواعيد محجوزة: <span id="bookedSlotsSummary">--</span></p>
+            </div>
+        </div>
 
-  </div>
+        <div class="button-group-form">
+            <button class="btn waves-effect waves-light blue lighten-1" onclick="loadSummaryData()">
+                <i class="material-icons right">refresh</i>تحديث الملخص
+            </button>
+            <button class="btn waves-effect waves-light grey lighten-1" type="button" onclick="goHome()">
+                <i class="material-icons right">home</i>الرئيسية
+            </button>
+        </div>
+    </div>
 
-  <div id="initialTeacherDataElement" style="display:none;"><?!= initialTeacherDataJson ?></div>
 
+  </div> <div id="initialTeacherDataElement" style="display:none;"><?!= initialTeacherDataJson ?></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
@@ -547,12 +965,13 @@
     // الدوال الأساسية لإدارة عرض الأقسام الرئيسية (تم نقلها للأعلى لضمان التعريف)
     // -----------------------------------------------------------
     function goHome() {
-        document.getElementById('mainButtons').style.display = 'block';
+        document.getElementById('mainButtons').style.display = 'grid'; // Changed to grid
         document.getElementById('studentListContainer').style.display = 'none';
         document.getElementById('addStudentForm').style.display = 'none';
         document.getElementById('editDeleteStudentContainer').style.display = 'none';
         document.getElementById('updateSchedulesContainer').style.display = 'none';
         document.getElementById('manageStudentsContainer').style.display = 'none';
+        document.getElementById('summaryPageContainer').style.display = 'none'; // ***** أضف هذا السطر *****
         
         // إعادة ضبط الفورمات عند العودة للصفحة الرئيسية
         const addForm = document.getElementById('addStudentForm').querySelector('form');
@@ -575,6 +994,9 @@
         const manageList = document.getElementById('manageStudentList');
         if (manageList) manageList.innerHTML = '<p class="center-align">جاري تحميل بيانات الطلاب...</p>';
 
+        // إعادة تعيين بيانات الملخص عند العودة للصفحة الرئيسية
+        summaryData = {};
+        displaySummaryData(); // لعرض "--" مرة أخرى
 
         M.updateTextFields();
         M.FormSelect.init(document.getElementById('new_subscription_type'));
@@ -589,9 +1011,11 @@
     function showAddStudentForm() {
         document.getElementById('mainButtons').style.display = 'none';
         document.getElementById('studentListContainer').style.display = 'none';
+        document.getElementById('addStudentForm').style.display = 'none';
         document.getElementById('editDeleteStudentContainer').style.display = 'none';
         document.getElementById('updateSchedulesContainer').style.display = 'none';
         document.getElementById('manageStudentsContainer').style.display = 'none';
+        document.getElementById('summaryPageContainer').style.display = 'none';
         document.getElementById('addStudentForm').style.display = 'block';
         
         const addForm = document.getElementById('addStudentForm').querySelector('form');
@@ -607,6 +1031,7 @@
         document.getElementById('editDeleteStudentContainer').style.display = 'none';
         document.getElementById('updateSchedulesContainer').style.display = 'none';
         document.getElementById('manageStudentsContainer').style.display = 'none';
+        document.getElementById('summaryPageContainer').style.display = 'none';
         document.getElementById('studentListContainer').style.display = 'block';
         loadStudents();
         M.updateTextFields(); 
@@ -618,6 +1043,7 @@
         document.getElementById('addStudentForm').style.display = 'none';
         document.getElementById('updateSchedulesContainer').style.display = 'none';
         document.getElementById('manageStudentsContainer').style.display = 'none';
+        document.getElementById('summaryPageContainer').style.display = 'none';
         document.getElementById('editDeleteStudentContainer').style.display = 'block';
         
         const editForm = document.getElementById('editDeleteStudentContainer').querySelector('form');
@@ -635,6 +1061,7 @@
         document.getElementById('addStudentForm').style.display = 'none';
         document.getElementById('editDeleteStudentContainer').style.display = 'none';
         document.getElementById('manageStudentsContainer').style.display = 'none';
+        document.getElementById('summaryPageContainer').style.display = 'none';
         document.getElementById('updateSchedulesContainer').style.display = 'block';
 
         const updateForm = document.getElementById('updateSchedulesContainer').querySelector('form');
@@ -645,67 +1072,110 @@
         initializeTeacherDataForForms('update');
     }
 
-
-    function processAndDisplayManageStudents(jsonString) {
-    let students = [];
-    try {
-        students = JSON.parse(jsonString);
-        displayFilteredStudents(students, 'manage'); // عرض الطلاب في جدول إدارة الطلاب
-    } catch (e) {
-        console.error("فشل في تحليل البيانات:", e);
-        M.toast({html: `حدث خطأ في تحليل البيانات: ${e.message}`, classes: 'red darken-3'});
-    }
-}
-
-
-
-    function loadManageStudents() {
-        const manageStudentListDiv = document.getElementById('manageStudentList');
-        manageStudentListDiv.innerHTML = '<p class="center-align">جاري تحميل بيانات الطلاب...</p>';
-        google.script.run
-            .withSuccessHandler(processAndDisplayManageStudents)
-            .withFailureHandler(onFailure)
-            .getStudentsRenewalStatus(); // نستخدم نفس الدالة لجلب بيانات الطلاب الأساسية
-    }
-
-
-
-    // دالة جديدة: إظهار صفحة إدارة الطلاب (عرض الكل)
     function showManageStudentsList() {
         document.getElementById('mainButtons').style.display = 'none';
         document.getElementById('studentListContainer').style.display = 'none';
         document.getElementById('addStudentForm').style.display = 'none';
         document.getElementById('editDeleteStudentContainer').style.display = 'none';
         document.getElementById('updateSchedulesContainer').style.display = 'none';
+        document.getElementById('summaryPageContainer').style.display = 'none';
         document.getElementById('manageStudentsContainer').style.display = 'block';
-        loadManageStudents(); // --> هنا المشكلة loadManageStudents ما كانتش متعرفة
+        loadManageStudents();
         M.updateTextFields();
     }
 
 
+    // ***** دالة جديدة لعرض صفحة الملخص *****
+    function showSummaryPage() {
+        document.getElementById('mainButtons').style.display = 'none';
+        document.getElementById('studentListContainer').style.display = 'none';
+        document.getElementById('addStudentForm').style.display = 'none';
+        document.getElementById('editDeleteStudentContainer').style.display = 'none';
+        document.getElementById('updateSchedulesContainer').style.display = 'none';
+        document.getElementById('manageStudentsContainer').style.display = 'none';
+        document.getElementById('summaryPageContainer').style.display = 'block'; // ***** أظهر صفحة الملخص *****
+        loadSummaryData(); // قم بتحميل البيانات عند فتح الصفحة
+    }
+
+    // ***** دالة جديدة لتحميل وعرض بيانات الملخص *****
+    function loadSummaryData() {
+        // عرض حالة "جاري التحميل"
+        document.getElementById('totalStudentsSummary').textContent = 'جاري...';
+        document.getElementById('activeStudentsSummary').textContent = 'جاري...';
+        document.getElementById('renewalNeededSummary').textContent = 'جاري...';
+        document.getElementById('overdueRenewalSummary').textContent = 'جاري...';
+        document.getElementById('monthlyPaymentsSummary').textContent = 'جاري...';
+        document.getElementById('yearlyPaymentsSummary').textContent = 'جاري...';
+        document.getElementById('totalTeachersSummary').textContent = 'جاري...'; // new
+        document.getElementById('activeTeachersSummary').textContent = 'جاري...'; // new
+        document.getElementById('availableSlotsSummary').textContent = 'جاري...'; // new
+        document.getElementById('bookedSlotsSummary').textContent = 'جاري...'; // new
+
+        M.toast({html: 'جاري جلب ملخص البيانات...', classes: 'blue lighten-1'});
+        google.script.run
+            .withSuccessHandler(function(jsonString) {
+                try {
+                    summaryData = JSON.parse(jsonString);
+                    displaySummaryData(); // عرض البيانات في الواجهة
+                    M.toast({html: 'تم تحديث الملخص بنجاح.', classes: 'green darken-1'});
+                } catch (e) {
+                    console.error("Failed to parse summary JSON:", e);
+                    M.toast({html: `خطأ في تحليل بيانات الملخص: ${e.message}`, classes: 'red darken-3'});
+                    // إعادة تعيين إلى -- في حالة الخطأ
+                    document.getElementById('totalStudentsSummary').textContent = '--';
+                    document.getElementById('activeStudentsSummary').textContent = '--';
+                    document.getElementById('renewalNeededSummary').textContent = '--';
+                    document.getElementById('overdueRenewalSummary').textContent = '--';
+                    document.getElementById('monthlyPaymentsSummary').textContent = '--';
+                    document.getElementById('yearlyPaymentsSummary').textContent = '--';
+                    document.getElementById('totalTeachersSummary').textContent = '--'; // new
+                    document.getElementById('activeTeachersSummary').textContent = '--'; // new
+                    document.getElementById('availableSlotsSummary').textContent = '--'; // new
+                    document.getElementById('bookedSlotsSummary').textContent = '--'; // new
+                }
+            })
+            .withFailureHandler(onFailure)
+            .getAcademySummary(); // *** هذه هي الدالة الجديدة التي ستحتاج لإنشائها في code.gs ***
+    }
+
+    // ***** دالة جديدة لعرض البيانات المحملة في الواجهة *****
+    function displaySummaryData() {
+        document.getElementById('totalStudentsSummary').textContent = summaryData.totalStudents !== undefined ? summaryData.totalStudents : '--';
+        document.getElementById('activeStudentsSummary').textContent = summaryData.activeStudents !== undefined ? summaryData.activeStudents : '--';
+        document.getElementById('renewalNeededSummary').textContent = summaryData.renewalNeeded !== undefined ? summaryData.renewalNeeded : '--';
+        document.getElementById('overdueRenewalSummary').textContent = summaryData.overdueRenewal !== undefined ? summaryData.overdueRenewal : '--';
+        document.getElementById('monthlyPaymentsSummary').textContent = summaryData.monthlyPayments !== undefined ? summaryData.monthlyPayments : '--';
+        document.getElementById('yearlyPaymentsSummary').textContent = summaryData.yearlyPayments !== undefined ? summaryData.yearlyPayments : '--';
+        document.getElementById('totalTeachersSummary').textContent = summaryData.totalTeachers !== undefined ? summaryData.totalTeachers : '--'; // new
+        document.getElementById('activeTeachersSummary').textContent = summaryData.activeTeachers !== undefined ? summaryData.activeTeachers : '--'; // new
+        document.getElementById('availableSlotsSummary').textContent = summaryData.availableSlots !== undefined ? summaryData.availableSlots : '--'; // new
+        document.getElementById('bookedSlotsSummary').textContent = summaryData.bookedSlots !== undefined ? summaryData.bookedSlots : '--'; // new
+    }
+
     // -----------------------------------------------------------
-    // الدوال المساعدة العامة (يجب أن تكون هنا أيضاً)
+    // الدوال المساعدة العامة 
     // -----------------------------------------------------------
 
-    // دالة لحساب عدد الحلقات بناءً على النظام
+    // دالة لحساب عدد الحلقات بناءً على النظام (عدد الحصص الأسبوعية المطلوبة)
     function getMonthlyMaxClassesForForm(systemType) {
         if (!systemType) return 0;
         const normalizedSystem = systemType.toLowerCase();
         switch (normalizedSystem) {
             case "حلقة / اسبوع / 30 دقيقة":
             case "حلقة / اسبوع / 60 دقيقة":
-                return 1;
+                return 1; // حصة واحدة أسبوعياً
             case "حلقتين / اسبوع / 30 دقيقة":
             case "حلقتين / اسبوع / 60 دقيقة":
             case "حلقتين / اسبوع / 45 دقيقة":
-                return 2;
+                return 2; // حصتان أسبوعياً
             case "3 حلقات / اسبوع / 30 دقيقة":
             case "3 حلقات / اسبوع / 45 دقيقة":
-                return 3;
+                return 3; // ثلاث حصص أسبوعياً
             case "4 حلقات / اسبوع / 30 دقيقة":
+                return 4; // أربع حصص أسبوعياً
             case "6 حلقات / اسبوع / 30 دقيقة":
-            case "يومياً":
-                return 6;
+            case "يومياً": // يُفترض أنها 6 أيام في الأسبوع
+                return 6; // ست حصص أسبوعياً
             default:
                 return 0;
         }
@@ -720,7 +1190,8 @@
       document.getElementById('editDeleteStudentContainer').style.display = 'none';
       document.getElementById('updateSchedulesContainer').style.display = 'none';
       document.getElementById('manageStudentsContainer').style.display = 'none';
-      document.getElementById('mainButtons').style.display = 'block';
+      document.getElementById('summaryPageContainer').style.display = 'none';
+      document.getElementById('mainButtons').style.display = 'grid'; // Changed to grid
     }
 
 
@@ -730,9 +1201,10 @@
     let allStudentsData = []; // لصفحة عرض التجديدات
     let allManageStudentsData = []; // لصفحة إدارة الطلاب (عرض الكل)
     let teachersNames = [];
-    let availableSchedules = {};
-    let allSchedulesWithStatus = {};
+    let availableSchedules = {}; // هذا سيحتوي على النصوص كما هي من الشيت
+    let allSchedulesWithStatus = {}; // هذا سيحتوي على النصوص كما هي من الشيت
     let currentSelectedTeacherForUpdate = null;
+    let summaryData = {}; // ***** متغير جديد لبيانات الملخص *****
 
 
     // هذا الكود سيقوم بقراءة البيانات الأولية من العنصر المخفي
@@ -755,36 +1227,10 @@
         console.error("Failed to parse initialTeacherData from hidden element:", e);
     }
     
-    // دالة مساعدة لتنسيق الوقت من 24 ساعة إلى 12 ساعة (ص/م)
-    function formatTime12Hour(time24hrPart) {
-        if (typeof time24hrPart !== 'string' || !time24hrPart.includes(':')) return '';
-        const [hours, minutes] = time24hrPart.split(':').map(Number);
-        if (isNaN(hours) || isNaN(minutes)) return 'وقت غير صالح';
-        const ampm = hours >= 12 ? 'م' : 'ص';
-        const formattedHours = hours % 12 || 12;
-        return `${formattedHours}:${minutes < 10 ? '0' : ''}${minutes} ${ampm}`;
-    }
+    // ***** إزالة دالة formatTime12Hour من هنا *****
+    // ***** إزالة دالة getTimeInMinutes من هنا *****
 
-    // دالة مساعدة لتحويل الوقت إلى دقائق للمقارنة
-    function getTimeInMinutes(timeString) {
-        if (typeof timeString !== 'string' || !timeString.includes(':')) return 0;
-        
-        let [timePart, ampm] = timeString.split(' ');
-        let [hours, minutes] = timePart.split(':').map(Number);
-
-        if (isNaN(hours) || isNaN(minutes)) return 0;
-
-        if (ampm) {
-            ampm = ampm.trim().toLowerCase();
-            if (ampm === 'م' && hours !== 12) {
-                hours += 12;
-            } else if (ampm === 'ص' && hours === 12) {
-                hours = 0;
-            }
-        }
-        return hours * 60 + minutes;
-    }
-
+    // هذا المتغير سيظل يحتوي على الأوقات كنصوص، وهذا مقبول
     const possibleTimeSlots = [
         "9:00 ص", "9:30 ص", "10:00 ص", "10:30 ص", "11:00 ص", "11:30 ص", "12:00 م", "12:30 م",
         "1:00 م", "1:30 م", "2:00 م", "2:30 م", "3:00 م", "3:30 م", "4:00 م", "4:30 م",
@@ -822,12 +1268,40 @@
         return;
       }
       
-      allStudentsData = students; // لصفحة عرض التجديدات
-      displayFilteredStudents(students, 'renewal'); // نوع العرض: تجديد
+      // ***** التعديل هنا: فلترة الطلاب الذين لا يحتاجون للتجديد *****
+      // عرض جميع الطلاب الذين حالتهم ليست "تم التجديد" (أو فارغة)
+      const filteredForRenewalDisplay = students.filter(student => {
+          const status = student.renewalStatus || '';
+          return status !== 'تم التجديد'; // أسهل وأشمل فلتر هنا
+      });
+
+      allStudentsData = students; // لصفحة عرض التجديدات (تظل البيانات الأصلية هنا للبحث)
+      displayFilteredStudents(filteredForRenewalDisplay, 'renewal'); // نوع العرض: تجديد (فلترة عند العرض فقط)
       M.updateTextFields(); 
     }
 
-    // دالة عرض الجدول المفلتر (مُعدلة لدعم وضعين للعرض)
+    function loadManageStudents() {
+        const manageStudentListDiv = document.getElementById('manageStudentList');
+        manageStudentListDiv.innerHTML = '<p class="center-align">جاري تحميل بيانات الطلاب...</p>';
+        google.script.run
+            .withSuccessHandler(function(jsonString) {
+                let students = [];
+                try {
+                    students = JSON.parse(jsonString);
+                } catch (e) {
+                    console.error("فشل في تحليل بيانات إدارة الطلاب:", e);
+                    M.toast({html: `حدث خطأ في تحليل بيانات الطلاب: ${e.message}`, classes: 'red darken-3'});
+                    return;
+                }
+                allManageStudentsData = students; // احتفظ بكل الطلاب هنا للبحث
+                displayFilteredStudents(students, 'manage'); // عرض الطلاب في جدول إدارة الطلاب
+            })
+            .withFailureHandler(onFailure)
+            .getStudentsRenewalStatus(); // نستخدم نفس الدالة لجلب بيانات الطلاب الأساسية
+    }
+
+
+    // دالة عرض الجدول المفلتر (لظهور الجدول بشكل تقليدي مع التمرير الأفقي)
     // viewMode: 'renewal' أو 'manage'
     function displayFilteredStudents(studentsToDisplay, viewMode) {
       const targetDiv = viewMode === 'renewal' ? document.getElementById('studentList') : document.getElementById('manageStudentList');
@@ -839,24 +1313,24 @@
       }
 
       let tableHtml = `
-        <table class="striped highlight responsive-table">
-          <thead>
-            <tr>
-              <th>المعرف</th>
-              <th>الاسم</th>
-              <th>السن</th>
-              <th>الرقم</th>
-              <th>النظام</th>
-              ${viewMode === 'renewal' ? `
-              <th>الحصص الحاضرة</th>
-              <th>تاريخ آخر دفع</th>
-              <th>المبلغ</th>
-              <th>الحالة</th>
-              ` : ''}
-              <th>الإجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
+        <div class="table-scroll-wrapper"> <table class="striped highlight responsive-table">
+            <thead>
+              <tr>
+                <th>المعرف</th>
+                <th>الاسم</th>
+                <th>السن</th>
+                <th>الرقم</th>
+                <th>النظام</th>
+                ${viewMode === 'renewal' ? `
+                <th>الحصص الحاضرة</th>
+                <th>تاريخ آخر دفع</th>
+                <th>المبلغ</th>
+                <th>الحالة</th>
+                ` : ''}
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
       `;
 
       studentsToDisplay.forEach(student => {
@@ -879,17 +1353,17 @@
             <td class="actions-cell">
               ${viewMode === 'renewal' ? `
               <button class="btn waves-effect waves-light green" onclick="markAsRenewed('${student.id}', ${student.row})">
-                <i class="material-icons right">check</i>تم التجديد
+                <i class="material-icons">check</i>
               </button>
               <button class="btn waves-effect waves-light red" onclick="promptForManualRenewal('${student.id}', ${student.row})">
-                <i class="material-icons right">edit</i>تجديد يدوي
+                <i class="material-icons">edit</i>
               </button>
               ` : `
-              <button class="btn waves-effect waves-light orange" onclick="editStudentFromList('${student.id}', ${student.row})">
-                <i class="material-icons right">edit</i>تعديل
+              <button class="btn waves-effect waves-light orange" onclick="editStudentFromList('${student.id}')">
+                <i class="material-icons">edit</i>
               </button>
               <button class="btn waves-effect waves-light red darken-2" onclick="promptDeleteStudentFromList('${student.id}', '${student.name}')">
-                <i class="material-icons right">delete</i>حذف
+                <i class="material-icons">delete</i>
               </button>
               `}
             </td>
@@ -898,23 +1372,41 @@
       });
 
       tableHtml += `
-          </tbody>
-        </table>
-      `;
+            </tbody>
+          </table>
+      </div> `;
 
       targetDiv.innerHTML = tableHtml;
     }
 
-    // دالة فلترة الطلاب لصفحة التجديدات
+    // دالة فلترة الطلاب لصفحة التجديدات (تفلتر بناءً على البيانات الموجودة حالياً في allStudentsData)
     function filterStudents() {
       const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
-      const filteredStudents = allStudentsData.filter(student => {
+      // يتم فلترة allStudentsData ثم يتم تطبيق فلتر التجديد عند العرض
+      const filteredForSearch = allStudentsData.filter(student => {
         return (student.id && student.id.toString().toLowerCase().includes(searchTerm)) ||
                (student.name && student.name.toString().toLowerCase().includes(searchTerm)) ||
                (student.system && student.system.toString().toLowerCase().includes(searchTerm));
       });
-      displayFilteredStudents(filteredStudents, 'renewal');
+      // ثم نعيد تطبيق فلترة التجديد قبل العرض
+      const filteredForRenewalDisplay = filteredForSearch.filter(student => {
+          const status = student.renewalStatus || '';
+          return status !== 'تم التجديد'; // نفس الفلتر يجب أن يطبق هنا أيضاً
+      });
+      displayFilteredStudents(filteredForRenewalDisplay, 'renewal');
     }
+
+    // دالة فلترة الطلاب لصفحة إدارة الطلاب (تمت الإضافة)
+    function filterManageStudents() {
+        const searchTerm = document.getElementById('manage_student_search').value.toLowerCase();
+        const filteredStudents = allManageStudentsData.filter(student => {
+            return (student.id && student.id.toString().toLowerCase().includes(searchTerm)) ||
+                   (student.name && student.name.toString().toLowerCase().includes(searchTerm)) ||
+                   (student.number && student.number.toString().toLowerCase().includes(searchTerm));
+        });
+        displayFilteredStudents(filteredStudents, 'manage');
+    }
+
 
     // دوال التجديد والدفع (كما هي)
     function markAsRenewed(studentId, row) {
@@ -923,7 +1415,7 @@
         google.script.run
           .withSuccessHandler(function() {
             M.toast({html: `تم تجديد الطالب ${studentId} بنجاح.`, classes: 'green darken-1'});
-            loadStudents();
+            loadStudents(); // إعادة تحميل للطلاب المفلترين للتجديد
           })
           .withFailureHandler(onFailure)
           .handleRenewalFromWeb(studentId, row, 0);
@@ -937,7 +1429,7 @@
         google.script.run
           .withSuccessHandler(function() {
             M.toast({html: `تم تسجيل دفعة ${amount} للطالب ${studentId} بنجاح.`, classes: 'green darken-1'});
-            loadStudents();
+            loadStudents(); // إعادة تحميل للطلاب المفلترين للتجديد
           })
           .withFailureHandler(onFailure)
           .handleRenewalFromWeb(studentId, row, parseFloat(amount));
@@ -948,7 +1440,7 @@
 
 
     // -----------------------------------------------------------
-    // دوال صفحة تحديث مواعيد المعلمين (كما هي)
+    // دوال صفحة تحديث مواعيد المعلمين
     // -----------------------------------------------------------
     function displayTeacherSchedulesForUpdate() {
         const teacherName = document.getElementById('update_teacher_name').value;
@@ -978,7 +1470,8 @@
             let timeChipsHtml = '';
             teacherDaySchedules.forEach(slot => {
                 const slotClass = slot.isBooked ? 'red lighten-2' : 'green lighten-2';
-                timeChipsHtml += `<span class="new badge ${slotClass}" data-badge-caption="">${formatTime12Hour(slot.timeSlot)}</span>`;
+                // ***** التعديل هنا: استخدام slot.timeSlot مباشرة *****
+                timeChipsHtml += `<span class="new badge ${slotClass}" data-badge-caption="">${slot.timeSlot}</span>`;
             });
 
 
@@ -1039,6 +1532,7 @@
         const teacherAllSchedulesForDay = allSchedulesWithStatus[currentSelectedTeacherForUpdate] && allSchedulesWithStatus[currentSelectedTeacherForUpdate][day] ?
                                          allSchedulesWithStatus[currentSelectedTeacherForUpdate][day] : [];
         
+        // selectedSlotsInModal يجب أن تحتوي الآن على النصوص كما هي
         selectedSlotsInModal = teacherAllSchedulesForDay.filter(slot => !slot.isBooked).map(slot => slot.timeSlot);
 
         const createTimeSlotButton = (slotString, isBooked, bookedByName = null) => {
@@ -1055,22 +1549,29 @@
                      M.toast({html: `هذا الموعد محجوز بالفعل بواسطة ${bookedByName || 'طالب آخر'}. لا يمكن إلغاء تحديده.`, classes: 'red darken-3'});
                 }
             };
-            button.textContent = `${formatTime12Hour(slotString)} ${isBooked ? `(${bookedByName || 'محجوز'})` : ''}`;
+            // ***** التعديل هنا: استخدام slotString مباشرة *****
+            button.textContent = `${slotString} ${isBooked ? `(${bookedByName || 'محجوز'})` : ''}`;
             return button;
         };
 
-        const sortedUniqueTimes = possibleTimeSlots.sort((a,b) => getTimeInMinutes(a) - getTimeInMinutes(b));
+        // ***** التعديل هنا: إزالة الفرز باستخدام getTimeInMinutes *****
+        // يمكننا الحصول على جميع الأوقات الفريدة من possibleTimeSlots ومن الأوقات الفعلية للمعلم
+        const allUniqueTimesToDisplay = Array.from(new Set(possibleTimeSlots.concat(teacherAllSchedulesForDay.map(s => s.timeSlot)))).filter(t => t);
+        
+        // يمكنك هنا فرز أبجدي إذا أردت ترتيباً ما، أو لا تفرز على الإطلاق
+        // allUniqueTimesToDisplay.sort(); 
 
-
-        sortedUniqueTimes.forEach(slotString => {
-            const startMinutes = getTimeInMinutes(slotString);
-
+        allUniqueTimesToDisplay.forEach(slotString => {
             const slotData = teacherAllSchedulesForDay.find(s => s.timeSlot === slotString);
             
-            if (startMinutes >= getTimeInMinutes("9:00 ص") && startMinutes < getTimeInMinutes("3:00 م")) {
-                morningSlotsGrid.appendChild(createTimeSlotButton(slotString, slotData && slotData.isBooked, slotData?.bookedBy?.name));
-            } else if (startMinutes >= getTimeInMinutes("3:00 م") && startMinutes < getTimeInMinutes("11:00 م")) {
-                eveningSlotsGrid.appendChild(createTimeSlotButton(slotString, slotData && slotData.isBooked, slotData?.bookedBy?.name));
+            // هذا الجزء يفترض أنك تريد الحفاظ على تقسيم صباحي/مسائي. بما أننا لا نحلل الوقت،
+            // يجب أن نعتمد على ما إذا كان الوقت يتضمن "ص" أو "م" أو نطاقات أوقات محددة.
+            // الطريقة الأكثر أماناً للتعامل كنص هي عرض كل شيء في مكان واحد، أو
+            // استخدام تعبيرات عادية بسيطة للتحقق من وجود "ص" أو "م".
+            if (slotString.includes('ص') || slotString.startsWith('9:') || slotString.startsWith('10:') || slotString.startsWith('11:') || slotString.startsWith('12:') && !slotString.includes('م')) { // مثال بسيط للتقسيم
+                 morningSlotsGrid.appendChild(createTimeSlotButton(slotString, slotData && slotData.isBooked, slotData?.bookedBy?.name));
+            } else {
+                 eveningSlotsGrid.appendChild(createTimeSlotButton(slotString, slotData && slotData.isBooked, slotData?.bookedBy?.name));
             }
         });
 
@@ -1103,7 +1604,7 @@
             .withSuccessHandler(function(response) {
                 if (response.status === "success") {
                     M.toast({html: `تم تحديث مواعيد ${currentSelectedTeacherForUpdate} في يوم ${day} بنجاح.`, classes: 'green darken-1'});
-                    loadTeacherDataFromServer('update');
+                    loadTeacherDataFromServer('update'); // يجب إعادة تحميل البيانات بعد الحفظ لتنعكس التغييرات
                 } else {
                     M.toast({html: `خطأ في حفظ المواعيد: ${response.message}`, classes: 'red darken-3'});
                 }
@@ -1114,7 +1615,7 @@
 
 
     // -----------------------------------------------------------
-    // دوال إدارة بيانات المعلمين والمواعيد في الفورمز (كما هي)
+    // دوال إدارة بيانات المعلمين والمواعيد في الفورمز
     // -----------------------------------------------------------
     function initializeTeacherDataForForms(formType) {
         if (teachersNames.length > 0 || Object.keys(availableSchedules).length > 0) {
@@ -1122,7 +1623,7 @@
             setupTeacherAndScheduleDropdowns(formType);
         } else {
             console.log("Pre-loaded initial data missing or empty. Falling back to server call.");
-            loadTeacherDataFromServer(formType);
+            loadTeacherDataFromServer('update'); // For update schedules page
         }
     }
 
@@ -1241,13 +1742,13 @@
             scheduleGroup.innerHTML = `
                 <h6>الميعاد رقم ${i + 1}</h6>
                 <div class="row">
-                    <div class="input-field col s6">
+                    <div class="input-field col s12 m6">
                         <select id="${teacherSelectIdPrefix}${i}" class="teacher-select" onchange="updateDayOptions(${i}, '${formType}')" required>
                             <option value="${mainTeacherName}" selected>${mainTeacherName}</option>
                         </select>
                         <label>المعلم</label>
                     </div>
-                    <div class="input-field col s6">
+                    <div class="input-field col s12 m6">
                         <select id="${daySelectIdPrefix}${i}" class="day-select" onchange="updateTimeOptions(${i}, '${formType}')" required>
                             <option value="" disabled selected>اختر اليوم</option>
                             </select>
@@ -1301,7 +1802,7 @@
 
 
     // -----------------------------------------------------------
-    // دوال تحميل البيانات للمعلمين والمواعيد (تم دمجها في setupTeacherAndScheduleDropdowns)
+    // دوال تحميل البيانات للمعلمين والمواعيد
     // -----------------------------------------------------------
     function updateDayOptions(index, formType, initialDay = null) {
         const teacherSelectIdPrefix = formType === 'add' ? 'schedule_teacher_' : 'edit_schedule_teacher_';
@@ -1394,6 +1895,14 @@
         M.updateTextFields();
     }
 
+    // دالة التعديل من قائمة إدارة الطلاب (تمت الإضافة)
+    function editStudentFromList(studentId) {
+        // نضبط حقل البحث ونقوم بالبحث عن الطالب
+        document.getElementById('edit_student_query').value = studentId;
+        showEditDeleteStudentForm(); // عرض نموذج التعديل/الحذف
+        searchStudentAndDisplay(); // البحث وعرض تفاصيل الطالب
+    }
+
     function handleUpdateStudent(event) {
         event.preventDefault();
 
@@ -1414,12 +1923,13 @@
             schedules: []
         };
 
-        const numberOfSchedules = getMonthlyMaxClassesForForm(updatedStudentData.systemType);
         const scheduleContainer = document.getElementById('editScheduleFieldsContainer');
-        for (let i = 0; i < numberOfSchedules; i++) {
-            const teacherSelect = scheduleContainer.querySelector(`#edit_schedule_teacher_${i}`);
-            const daySelect = scheduleContainer.querySelector(`#edit_schedule_day_${i}`);
-            const timeSelect = scheduleContainer.querySelector(`#edit_schedule_time_${i}`);
+        const scheduleGroups = scheduleContainer.querySelectorAll('.schedule-input-group');
+
+        for (let i = 0; i < scheduleGroups.length; i++) {
+            const teacherSelect = scheduleGroups[i].querySelector(`[id^='edit_schedule_teacher_']`);
+            const daySelect = scheduleGroups[i].querySelector(`[id^='edit_schedule_day_']`);
+            const timeSelect = scheduleGroups[i].querySelector(`[id^='edit_schedule_time_']`);
 
             if (!teacherSelect || !daySelect || !timeSelect) {
                  continue;
@@ -1456,23 +1966,38 @@
         const reason = prompt(`هل أنت متأكد من حذف الطالب ${studentName} (${studentId})؟\n\nالرجاء إدخال سبب الحذف (اختياري):`);
 
         if (reason !== null) {
-            M.toast({html: `جاري حذف الطالب ${studentId}...`, classes: 'orange darken-2'});
-            google.script.run
-                .withSuccessHandler(function(response) {
-                    if (response.status === "success") {
-                        M.toast({html: `تم حذف الطالب ${studentId} بنجاح.`, classes: 'green darken-1'});
-                        goHome();
-                    } else {
-                        M.toast({html: `خطأ في حذف الطالب: ${response.message}`, classes: 'red darken-3'});
-                    }
-                })
-                .withFailureHandler(onFailure)
-                .deleteStudent(studentId, reason);
+            executeDeleteStudent(studentId, reason);
         }
     }
 
+    // دالة الحذف من قائمة إدارة الطلاب (تمت الإضافة)
+    function promptDeleteStudentFromList(studentId, studentName) {
+        const reason = prompt(`هل أنت متأكد من حذف الطالب ${studentName} (${studentId})؟\n\nالرجاء إدخال سبب الحذف (اختياري):`);
+
+        if (reason !== null) {
+            executeDeleteStudent(studentId, reason);
+        }
+    }
+
+    // دالة تنفيذ الحذف المشتركة (تمت الإضافة)
+    function executeDeleteStudent(studentId, reason) {
+        M.toast({html: `جاري حذف الطالب ${studentId}...`, classes: 'orange darken-2'});
+        google.script.run
+            .withSuccessHandler(function(response) {
+                if (response.status === "success") {
+                    M.toast({html: `تم حذف الطالب ${studentId} بنجاح.`, classes: 'green darken-1'});
+                    goHome();
+                } else {
+                    M.toast({html: `خطأ في حذف الطالب: ${response.message}`, classes: 'red darken-3'});
+                }
+            })
+            .withFailureHandler(onFailure)
+            .deleteStudent(studentId, reason);
+    }
+
+
     // -----------------------------------------------------------
-    // دوال لإضافة طالب جديد (مُعدلة لدعم تهيئة المعلمين)
+    // دوال لإضافة طالب جديد
     // -----------------------------------------------------------
 
     function handleNewStudentSubmit(event) {
@@ -1489,10 +2014,22 @@
 
         const numberOfSchedules = getMonthlyMaxClassesForForm(studentData.systemType);
         const scheduleContainer = document.getElementById('addScheduleFieldsContainer');
+        
+        const scheduleGroups = scheduleContainer.querySelectorAll('.schedule-input-group');
+
         for (let i = 0; i < numberOfSchedules; i++) {
-            const teacherName = scheduleContainer.querySelector(`#schedule_teacher_${i}`).value;
-            const day = scheduleContainer.querySelector(`#schedule_day_${i}`).value;
-            const time = scheduleContainer.querySelector(`#schedule_time_${i}`).value;
+            const teacherSelect = scheduleGroups[i].querySelector(`#schedule_teacher_${i}`);
+            const daySelect = scheduleGroups[i].querySelector(`#schedule_day_${i}`);
+            const timeSelect = scheduleGroups[i].querySelector(`#schedule_time_${i}`);
+
+            if (!teacherSelect || !daySelect || !timeSelect) {
+                 M.toast({html: `الرجاء اختيار المعلم واليوم والميعاد لجميع الحصص المطلوبة (ميعاد رقم ${i + 1}).`, classes: 'red darken-3'});
+                 return;
+            }
+
+            const teacherName = teacherSelect.value;
+            const day = daySelect.value;
+            const time = timeSelect.value;
 
             if (!teacherName || !day || !time) {
                 M.toast({html: `الرجاء اختيار المعلم واليوم والميعاد لجميع الحصص المطلوبة (ميعاد رقم ${i + 1}).`, classes: 'red darken-3'});
