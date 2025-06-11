@@ -384,8 +384,10 @@ function handleSheetEdit(e) {
   Logger.log("--- انتهى تشغيل handleSheetEdit ---");
 }
 
+
+
 // -----------------------------------------------------------------------------
-// دالة مساعدة جديدة: لحساب إجمالي حضور طالب واحد (تم فصلها من updateSingleStudentAttendanceAndRenewalStatus)
+// دالة مساعدة جديدة: لحساب إجمالي حضور طالب واحد
 // -----------------------------------------------------------------------------
 function calculateStudentAttendance(studentId) {
   let totalStudentAttendance = 0;
@@ -399,20 +401,19 @@ function calculateStudentAttendance(studentId) {
 
   const teacherUrls = [];
   for (let i = TEACHER_FIRST_DATA_ROW - 1; i < teacherValues.length; i++) {
-    const teacherUrl = teacherValues[i][TEACHER_SHEET_URL_COL - 1]; 
+    const teacherUrl = teacherValues[i][TEACHER_SHEET_URL_COL - 1];
     if (teacherUrl) {
       teacherUrls.push(teacherUrl);
     }
   }
 
-  const allTeacherSheetsData = {}; 
+  const allTeacherSheetsData = {};
   for (let urlCount = 0; urlCount < teacherUrls.length; urlCount++) {
     const teacherSheetUrl = teacherUrls[urlCount];
     try {
       const teacherSpreadsheet = SpreadsheetApp.openByUrl(teacherSheetUrl);
-      const teacherSheet = teacherSpreadsheet.getSheets()[0]; 
-      // تأكد من أننا نخزن بيانات الشيت في allTeacherSheetsData
-      allTeacherSheetsData[teacherSheetUrl] = teacherSheet.getDataRange().getValues(); 
+      const teacherSheet = teacherSpreadsheet.getSheets()[0];
+      allTeacherSheetsData[teacherSheetUrl] = teacherSheet.getDataRange().getValues();
     } catch (e) {
       Logger.log(`خطأ في تهيئة بيانات المعلمين (calculateStudentAttendance) - الوصول أو معالجة شيت المعلم: ${teacherSheetUrl} - ${e.message}`);
     }
@@ -420,24 +421,36 @@ function calculateStudentAttendance(studentId) {
 
   for (let j = 0; j < teacherUrls.length; j++) {
     const teacherSheetUrl = teacherUrls[j];
-    const teacherSheetData = allTeacherSheetsData[teacherSheetUrl]; 
+    const teacherSheetData = allTeacherSheetsData[teacherSheetUrl];
 
     if (teacherSheetData) {
       for (let k = 0; k < teacherSheetData.length; k++) {
-        const currentTeacherStudentId = teacherSheetData[k][TEACHER_STUDENT_ID_COL_IN_TEACHER_SHEET - 1];
-        if (currentTeacherStudentId !== undefined && currentTeacherStudentId !== null && currentTeacherStudentId.toString().trim() === studentId.toString().trim()) {
-          for (let col = TEACHER_ATTENDANCE_COLS_START - 1; col < TEACHER_ATTENDANCE_COLS_END; col++) {
-            if (teacherSheetData[k][col] === true) { 
-              totalStudentAttendance++;
+        const rowData = teacherSheetData[k];
+
+        // *** التعديل هنا: دمج التحقق من الصف مع التحقق من معرف الطالب ***
+        // نتحقق أولاً من وجود الصف، ثم نتحقق من وجود معرف الطالب في الخلية
+        if (rowData && rowData.length > (TEACHER_STUDENT_ID_COL_IN_TEACHER_SHEET - 1)) { // تأكد أن الصف طويل بما يكفي ليحتوي على عمود ID
+          const currentTeacherStudentId = rowData[TEACHER_STUDENT_ID_COL_IN_TEACHER_SHEET - 1];
+          
+          // الآن نتحقق من currentTeacherStudentId قبل استخدام toString()
+          if (currentTeacherStudentId !== undefined && currentTeacherStudentId !== null) { // هذا هو السطر 429
+            if (currentTeacherStudentId.toString().trim() === studentId.toString().trim()) {
+              for (let col = TEACHER_ATTENDANCE_COLS_START - 1; col < TEACHER_ATTENDANCE_COLS_END; col++) {
+                // *** التحقق من وجود الخلية قبل الوصول إليها ***
+                if (rowData.length > col && rowData[col] === true) {
+                  totalStudentAttendance++;
+                }
+              }
+              break;
             }
           }
-          break; 
         }
       }
     }
   }
   return totalStudentAttendance;
 }
+
 
 
 // -----------------------------------------------------------------------------
@@ -650,44 +663,7 @@ function formatDateOnly(dateObj, formatType = 'DD/MM/YYYY') {
 }
 
 
-/**
- * دالة مساعدة لتحويل الوقت من 24 ساعة إلى 12 ساعة (ص/م).
- * Note: هذه الدالة تُستخدم لعرض الأوقات في الواجهة. لا تُستخدم للمقارنات.
- * @param {string} time24hrPart الوقت بصيغة HH:MM (24 ساعة).
- * @returns {string} الوقت بصيغة 12 ساعة مع ص/م.
- */
-function formatTime12Hour(time24hrPart) {
-    if (typeof time24hrPart !== 'string' || !time24hrPart.includes(':')) return '';
-    const [hours, minutes] = time24hrPart.split(':').map(Number);
-    if (isNaN(hours) || isNaN(minutes)) return 'وقت غير صالح';
-    const ampm = hours >= 12 ? 'م' : 'ص';
-    const formattedHours = hours % 12 || 12; // 00:xx becomes 12:xx AM
-    return `${formattedHours}:${minutes < 10 ? '0' : ''}${minutes} ${ampm}`;
-}
 
-/**
- * دالة مساعدة لتحويل الوقت (بصيغة 12 أو 24 ساعة) إلى دقائق للمقارنة الزمنية.
- * @param {string} timeString الوقت كنص (مثلاً "9:00 ص" أو "16:30").
- * @returns {number} الوقت الكلي بالدقائق من منتصف الليل.
- */
-function getTimeInMinutes(timeString) {
-    if (typeof timeString !== 'string' || !timeString.includes(':')) return 0;
-    
-    let [timePart, ampm] = timeString.split(' ');
-    let [hours, minutes] = timePart.split(':').map(Number);
-
-    if (isNaN(hours) || isNaN(minutes)) return 0; // Invalid time part
-
-    if (ampm) { // If AM/PM is provided, it's 12-hour format
-        ampm = ampm.trim().toLowerCase();
-        if (ampm === 'م' && hours !== 12) {
-            hours += 12;
-        } else if (ampm === 'ص' && hours === 12) {
-            hours = 0; // 12:xx AM is 00:xx in 24-hour
-        }
-    }
-    return hours * 60 + minutes;
-}
 
 
 
@@ -1094,12 +1070,12 @@ Utilities.getColLetter = function(col) {
 function getTeacherAndAvailableSchedules() {
   Logger.log("getTeacherAndAvailableSchedules: Starting execution.");
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  let teacherNames = []; 
-  let availableSchedules = {}; 
-  let allSchedulesWithStatus = {}; 
+  let teacherNames = [];
+  let availableSchedules = {};
+  let allSchedulesWithStatus = {};
 
   try {
-    // 1. جلب أسماء المعلمين الفريدة من شيت "المعلمين" (كما هي)
+    // 1. جلب أسماء المعلمين الفريدة من شيت "المعلمين"
     const teachersSheet = spreadsheet.getSheetByName(TEACHERS_SHEET_NAME);
     if (!teachersSheet) {
       Logger.log(`خطأ: لم يتم العثور على شيت المعلمين باسم '${TEACHERS_SHEET_NAME}'.`);
@@ -1109,7 +1085,7 @@ function getTeacherAndAvailableSchedules() {
     const uniqueTeacherNamesSet = new Set();
     for (let i = 0; i < allTeachersSheetValues.length; i++) {
         const row = allTeachersSheetValues[i];
-        const name = row[TEACHER_NAME_COL - 1]; 
+        const name = row[TEACHER_NAME_COL - 1];
         if (name && name.toString().trim() !== "") {
             uniqueTeacherNamesSet.add(name.toString().trim());
         }
@@ -1125,7 +1101,7 @@ function getTeacherAndAvailableSchedules() {
       throw new Error(`شيت المواعيد المتاحة للمعلمين غير موجود: ${AVAILABLE_SCHEDULES_SHEET_NAME}`);
     }
 
-    const allScheduleData = availableSchedulesSheet.getDataRange().getDisplayValues(); 
+    const allScheduleData = availableSchedulesSheet.getDataRange().getDisplayValues();
     Logger.log(`عدد الصفوف المقروءة من المواعيد المتاحة: ${allScheduleData.length}`);
 
     if (allScheduleData.length < AVAILABLE_SCHEDULE_FIRST_DATA_ROW) {
@@ -1133,8 +1109,8 @@ function getTeacherAndAvailableSchedules() {
         return JSON.stringify({ teacherNames: teacherNames, availableSchedules: {}, allSchedulesWithStatus: {} });
     }
 
-    // --- **تعديل هنا: جمع كل فهارس أعمدة المواعيد الموجودة فعلاً** ---
-    let actualTimeColIndices = new Set(); 
+    // --- **جمع كل فهارس أعمدة المواعيد الموجودة فعلاً** ---
+    let actualTimeColIndices = new Set();
     // نمر على كل صفوف البيانات (من الصف الأول للبيانات)
     for (let i = AVAILABLE_SCHEDULE_FIRST_DATA_ROW - 1; i < allScheduleData.length; i++) {
         const row = allScheduleData[i];
@@ -1143,7 +1119,7 @@ function getTeacherAndAvailableSchedules() {
             const timeValue = row[col];
             if (timeValue && timeValue.toString().trim() !== "") {
                 // نضيف فهرس العمود (0-indexed) فقط
-                actualTimeColIndices.add(col); 
+                actualTimeColIndices.add(col);
             }
         }
     }
@@ -1153,53 +1129,53 @@ function getTeacherAndAvailableSchedules() {
 
     for (let i = AVAILABLE_SCHEDULE_FIRST_DATA_ROW - 1; i < allScheduleData.length; i++) {
       const row = allScheduleData[i];
-      const teacherNameInSchedule = row[AVAILABLE_SCHEDULE_TEACHER_NAME_COL - 1]; 
-      const day = row[AVAILABLE_SCHEDULE_DAY_COL - 1]; 
-      
-      if (teacherNameInSchedule && day) { 
+      const teacherNameInSchedule = row[AVAILABLE_SCHEDULE_TEACHER_NAME_COL - 1];
+      const day = row[AVAILABLE_SCHEDULE_DAY_COL - 1];
+
+      if (teacherNameInSchedule && day) {
           const currentTeacherName = teacherNameInSchedule.toString().trim();
           const currentDay = day.toString().trim();
 
           // تهيئة الكائنات للمعلم واليوم لو مش موجودين
           if (!availableSchedules[currentTeacherName]) {
               availableSchedules[currentTeacherName] = {};
-              allSchedulesWithStatus[currentTeacherName] = {}; 
+              allSchedulesWithStatus[currentTeacherName] = {};
           }
           if (!availableSchedules[currentTeacherName][currentDay]) {
               availableSchedules[currentTeacherName][currentDay] = [];
-              allSchedulesWithStatus[currentTeacherName][currentDay] = []; 
+              allSchedulesWithStatus[currentTeacherName][currentDay] = [];
           }
-          
+
           // نمر على فهارس الأعمدة اللي فيها مواعيد فعلية (sortedActualTimeColIndices)
           for (let k = 0; k < sortedActualTimeColIndices.length; k++) {
               const timeColIndex = sortedActualTimeColIndices[k];
               const actualTimeValueInRow = row[timeColIndex]; // القيمة الفعلية في الخلية
-              
+
               if (actualTimeValueInRow && actualTimeValueInRow.toString().trim() !== "") {
-                  // الميعاد ده متاح حاليا في الشيت (موجود في الخلية بالضبط)
                   const trimmedTime = actualTimeValueInRow.toString().trim();
+                  // ***** لا يوجد تحويل هنا، نستخدم النص كما هو *****
                   availableSchedules[currentTeacherName][currentDay].push(trimmedTime);
                   allSchedulesWithStatus[currentTeacherName][currentDay].push({
-                      timeSlot: trimmedTime,
+                      timeSlot: trimmedTime, // نخزن النص كما هو
                       isBooked: false,
                       bookedBy: null,
                       colIndex: timeColIndex + 1 // نضيف فهرس العمود (1-indexed)
                   });
               }
           }
-          // Sort allSchedulesWithStatus[currentTeacherName][currentDay] by timeSlot
-          allSchedulesWithStatus[currentTeacherName][currentDay].sort((a,b) => getTimeInMinutes(a.timeSlot) - getTimeInMinutes(b.timeSlot));
+          // لا يوجد فرز هنا لأن الترتيب غير مهم للمواعيد كنص
+          // allSchedulesWithStatus[currentTeacherName][currentDay].sort((a,b) => getTimeInMinutes(a.timeSlot) - getTimeInMinutes(b.timeSlot));
 
       } else {
         Logger.log(`Skipping row ${i+1} in Available Schedules due to missing Teacher Name or Day (data: ${JSON.stringify(row)}).`);
       }
     }
 
-    // الآن، نتحقق من المواعيد المحجوزة من شيت "مواعيد الطلبة" ونحدث allSchedulesWithStatus (كما هي)
+    // الآن، نتحقق من المواعيد المحجوزة من شيت "مواعيد الطلبة" ونحدث allSchedulesWithStatus
     const studentSchedulesSheet = spreadsheet.getSheetByName(STUDENT_SCHEDULES_SHEET_NAME);
     if (studentSchedulesSheet) {
         const allStudentSchedulesData = studentSchedulesSheet.getDataRange().getValues();
-        const bookedSlotsMap = new Map(); 
+        const bookedSlotsMap = new Map();
 
         for (let i = STUDENT_SCHEDULE_FIRST_DATA_ROW - 1; i < allStudentSchedulesData.length; i++) {
             const row = allStudentSchedulesData[i];
@@ -1209,15 +1185,19 @@ function getTeacherAndAvailableSchedules() {
 
             if (schTeacherName && row[STUDENT_SCHEDULE_DAY1_COL - 1] && row[STUDENT_SCHEDULE_TIME1_COL - 1]) {
                 const day = row[STUDENT_SCHEDULE_DAY1_COL - 1].toString().trim();
-                const time = row[STUDENT_SCHEDULE_TIME1_COL - 1].toString().trim();
-                const key = `${schTeacherName.toString().trim()}-${day}-${time}`;
-                bookedSlotsMap.set(key, { _id: studentId, name: studentName });
+                const timeText = row[STUDENT_SCHEDULE_TIME1_COL - 1].toString().trim(); // ***** النص كما هو *****
+                if (timeText !== '') {
+                    const key = `${schTeacherName.toString().trim()}-${day}-${timeText}`;
+                    bookedSlotsMap.set(key, { _id: studentId, name: studentName });
+                }
             }
             if (schTeacherName && row[STUDENT_SCHEDULE_DAY2_COL - 1] && row[STUDENT_SCHEDULE_TIME2_COL - 1]) {
                 const day = row[STUDENT_SCHEDULE_DAY2_COL - 1].toString().trim();
-                const time = row[STUDENT_SCHEDULE_TIME2_COL - 1].toString().trim();
-                const key = `${schTeacherName.toString().trim()}-${day}-${time}`;
-                bookedSlotsMap.set(key, { _id: studentId, name: studentName });
+                const timeText = row[STUDENT_SCHEDULE_TIME2_COL - 1].toString().trim(); // ***** النص كما هو *****
+                if (timeText !== '') {
+                    const key = `${schTeacherName.toString().trim()}-${day}-${timeText}`;
+                    bookedSlotsMap.set(key, { _id: studentId, name: studentName });
+                }
             }
         }
 
@@ -1242,10 +1222,9 @@ function getTeacherAndAvailableSchedules() {
 
   } catch (e) {
     Logger.log(`خطأ عام في getTeacherAndAvailableSchedules: ${e.message}`);
-    return JSON.stringify({ teacherNames: [], availableSchedules: {}, allSchedulesWithStatus: {} }); 
+    return JSON.stringify({ teacherNames: [], availableSchedules: {}, allSchedulesWithStatus: {} });
   }
 }
-
 
 
 
@@ -1413,13 +1392,13 @@ function addNewStudent(studentData) {
  */
 function clearScheduledTime(sheet, scheduleData) {
     Logger.log(`[clearScheduledTime] Starting to clear schedule: ${JSON.stringify(scheduleData)}`);
-    
+
     if (!scheduleData || !scheduleData.teacherName || !scheduleData.day || !scheduleData.time) {
         Logger.log(`[clearScheduledTime] ERROR: Invalid scheduleData received: ${JSON.stringify(scheduleData)}`);
         return;
     }
 
-    const availableValues = sheet.getDataRange().getDisplayValues(); 
+    const availableValues = sheet.getDataRange().getDisplayValues();
     let foundAndCleared = false;
 
     Logger.log(`[clearScheduledTime] Sheet read. Rows: ${availableValues.length}, Cols: ${availableValues[0] ? availableValues[0].length : 0}`);
@@ -1428,7 +1407,7 @@ function clearScheduledTime(sheet, scheduleData) {
 
     for (let r = AVAILABLE_SCHEDULE_FIRST_DATA_ROW - 1; r < availableValues.length; r++) {
       const currentRow = availableValues[r];
-      if (currentRow.length < AVAILABLE_SCHEDULE_TIMES_START_COL) { // نستخدم AVAILABLE_SCHEDULE_TIMES_START_COL
+      if (currentRow.length < AVAILABLE_SCHEDULE_TIMES_START_COL) {
           Logger.log(`[clearScheduledTime] Skipping row ${r+1}: Too few columns. Row content: ${JSON.stringify(currentRow)}`);
           continue;
       }
@@ -1440,25 +1419,25 @@ function clearScheduledTime(sheet, scheduleData) {
 
       if (currentTeacherNameInSheet && currentTeacherNameInSheet.toString().trim() === scheduleData.teacherName.toString().trim() &&
           currentDayInSheet && currentDayInSheet.toString().trim() === scheduleData.day.toString().trim()) {
-        
+
         Logger.log(`[clearScheduledTime] MATCH found for Teacher/Day in row ${r+1}. Now checking time slots.`);
-        
+
         // نمر على أعمدة المواعيد في الصف ده عشان نلاقي الميعاد المحدد
-        for (let col = AVAILABLE_SCHEDULE_TIMES_START_COL - 1; col < currentRow.length; col++) { // نستخدم AVAILABLE_SCHEDULE_TIMES_START_COL
-          const timeSlotInCell = currentRow[col]; 
-          
+        for (let col = AVAILABLE_SCHEDULE_TIMES_START_COL - 1; col < currentRow.length; col++) {
+          const timeSlotInCell = currentRow[col];
+
           Logger.log(`[clearScheduledTime] Row ${r+1}, Col ${col+1} (Value: '${timeSlotInCell}'). Comparing with target time: '${scheduleData.time}'`);
 
           if (timeSlotInCell && timeSlotInCell.toString().trim() === scheduleData.time.toString().trim()) {
             Logger.log(`[clearScheduledTime] EXACT MATCH FOUND! Clearing cell (Row: ${r+1}, Col: ${col+1}).`);
-            sheet.getRange(r + 1, col + 1).clearContent(); 
+            sheet.getRange(r + 1, col + 1).clearContent();
             foundAndCleared = true;
-            break; 
+            break;
           }
         }
       }
-      if (foundAndCleared) { 
-        break; 
+      if (foundAndCleared) {
+        break;
       }
     }
 
@@ -1466,7 +1445,6 @@ function clearScheduledTime(sheet, scheduleData) {
       Logger.log(`[clearScheduledTime] WARNING: Schedule not found for clearing: Teacher '${scheduleData.teacherName}', Day '${scheduleData.day}', Time '${scheduleData.time}'.`);
     }
 }
-
 
 
 /**
@@ -1563,7 +1541,7 @@ function getStudentSchedulesInternal(studentId) {
     return [];
   }
 
-  const allSchedulesData = studentSchedulesSheet.getDataRange().getValues(); // نستخدم getValues() هنا عادي لأن التواريخ هتتحول
+  const allSchedulesData = studentSchedulesSheet.getDataRange().getValues();
   const studentSchedules = [];
 
   for (let i = STUDENT_SCHEDULE_FIRST_DATA_ROW - 1; i < allSchedulesData.length; i++) {
@@ -1576,7 +1554,7 @@ function getStudentSchedulesInternal(studentId) {
         studentSchedules.push({
           teacherName: row[STUDENT_SCHEDULE_TEACHER_NAME_COL - 1] || '',
           day: row[STUDENT_SCHEDULE_DAY1_COL - 1].toString().trim(),
-          time: row[STUDENT_SCHEDULE_TIME1_COL - 1].toString().trim(),
+          time: row[STUDENT_SCHEDULE_TIME1_COL - 1].toString().trim(), // ***** النص كما هو *****
           scheduleRow: i + 1 // رقم الصف في شيت مواعيد الطلبة
         });
       }
@@ -1585,7 +1563,7 @@ function getStudentSchedulesInternal(studentId) {
         studentSchedules.push({
           teacherName: row[STUDENT_SCHEDULE_TEACHER_NAME_COL - 1] || '', // نفس المعلم لليومين
           day: row[STUDENT_SCHEDULE_DAY2_COL - 1].toString().trim(),
-          time: row[STUDENT_SCHEDULE_TIME2_COL - 1].toString().trim(),
+          time: row[STUDENT_SCHEDULE_TIME2_COL - 1].toString().trim(), // ***** النص كما هو *****
           scheduleRow: i + 1 // رقم الصف في شيت مواعيد الطلبة
         });
       }
@@ -1612,7 +1590,7 @@ function returnScheduledTime(sheet, scheduleData) {
     return;
   }
 
-  const availableValues = sheet.getDataRange().getDisplayValues(); 
+  const availableValues = sheet.getDataRange().getDisplayValues();
   let foundAndReturned = false;
 
   Logger.log(`[returnScheduledTime] Sheet read. Rows: ${availableValues.length}, Cols: ${availableValues[0] ? availableValues[0].length : 0}`);
@@ -1620,7 +1598,7 @@ function returnScheduledTime(sheet, scheduleData) {
 
   for (let r = AVAILABLE_SCHEDULE_FIRST_DATA_ROW - 1; r < availableValues.length; r++) {
     const currentRow = availableValues[r];
-    if (currentRow.length < AVAILABLE_SCHEDULE_TIMES_START_COL) { // نستخدم AVAILABLE_SCHEDULE_TIMES_START_COL
+    if (currentRow.length < AVAILABLE_SCHEDULE_TIMES_START_COL) {
         continue;
     }
 
@@ -1629,27 +1607,27 @@ function returnScheduledTime(sheet, scheduleData) {
 
     if (currentTeacherNameInSheet && currentTeacherNameInSheet.toString().trim() === scheduleData.teacherName.toString().trim() &&
         currentDayInSheet && currentDayInSheet.toString().trim() === scheduleData.day.toString().trim()) {
-      
+
       Logger.log(`[returnScheduledTime] MATCH found for Teacher/Day in row ${r+1}. Now checking time slots to return.`);
-      
+
       // هنا بقى نمر على أعمدة المواعيد ونبحث عن أول خلية فارغة نكتب فيها الميعاد
-      for (let col = AVAILABLE_SCHEDULE_TIMES_START_COL - 1; col < currentRow.length; col++) { // نستخدم AVAILABLE_SCHEDULE_TIMES_START_COL
-        const timeSlotInCell = currentRow[col]; 
-        
+      for (let col = AVAILABLE_SCHEDULE_TIMES_START_COL - 1; col < currentRow.length; col++) {
+        const timeSlotInCell = currentRow[col];
+
         if (!timeSlotInCell || timeSlotInCell.toString().trim() === "") { // لو الخلية فاضية
             sheet.getRange(r + 1, col + 1).setValue(scheduleData.time);
             Logger.log(`[returnScheduledTime] Returned schedule '${scheduleData.time}' to empty cell (Row: ${r+1}, Col: ${col+1}).`);
             foundAndReturned = true;
-            break; 
+            break;
         } else if (timeSlotInCell.toString().trim() === scheduleData.time.toString().trim()) {
             Logger.log(`[returnScheduledTime] WARNING: Schedule '${scheduleData.time}' already exists in cell (Row: ${r+1}, Col: ${col+1}). Not returning.`);
-            foundAndReturned = true; 
+            foundAndReturned = true;
             break;
         }
       }
     }
-    if (foundAndReturned) { 
-        break; 
+    if (foundAndReturned) {
+      break;
     }
   }
 
@@ -2000,10 +1978,11 @@ function getTeacherSchedulesForUpdate(teacherName) {
 
 /**
  * دالة لتحديث المواعيد المتاحة لمعلم معين في يوم معين.
- * ستقوم بمسح جميع المواعيد القديمة لهذا المعلم في هذا اليوم
- * وإعادة كتابة المواعيد الجديدة المقدمة بالترتيب.
+ * ستقوم بملء المواعيد الجديدة في الأعمدة الفارغة، وتخطي الأعمدة المملوءة،
+ * وإضافة أعمدة جديدة إذا لزم الأمر، دون اشتراط الترتيب الزمني للمواعيد المكتوبة.
+ *
  * @param {string} teacherName اسم المعلم.
- * @param {string} day اليوم (مثلاً: "الاحد").
+ * @param {string} day اليوم (مثلاً: "السبت").
  * @param {Array<string>} newTimeSlots مصفوفة بالمواعيد النصية الجديدة لهذا اليوم (مثلاً: ["09:00 ص", "10:00 ص"]).
  * @returns {Object} حالة العملية (success/error).
  */
@@ -2016,14 +1995,13 @@ function updateTeacherAvailableSchedules(teacherName, day, newTimeSlots) {
     return { status: "error", message: `شيت المواعيد المتاحة للمعلمين غير موجود: ${AVAILABLE_SCHEDULES_SHEET_NAME}` };
   }
 
-  const allScheduleData = availableSchedulesSheet.getDataRange().getDisplayValues(); 
-  const currentSheetDataRange = availableSchedulesSheet.getDataRange(); 
-
-  let teacherDayRowIndex = -1; 
+  // نحصل على البيانات الحالية للصف الذي سنعدله فقط (لكي نقلل القراءات)
+  const allSheetData = availableSchedulesSheet.getDataRange().getDisplayValues(); // لنجد الصف أولاً
+  let teacherDayRowIndex = -1;
 
   // 1. نلاقي صف المعلم واليوم المحدد
-  for (let i = AVAILABLE_SCHEDULE_FIRST_DATA_ROW - 1; i < allScheduleData.length; i++) {
-    const row = allScheduleData[i];
+  for (let i = AVAILABLE_SCHEDULE_FIRST_DATA_ROW - 1; i < allSheetData.length; i++) {
+    const row = allSheetData[i]; // نستخدم allSheetData هنا
     const currentTeacherNameInSheet = row[AVAILABLE_SCHEDULE_TEACHER_NAME_COL - 1];
     const currentDayInSheet = row[AVAILABLE_SCHEDULE_DAY_COL - 1];
 
@@ -2040,39 +2018,212 @@ function updateTeacherAvailableSchedules(teacherName, day, newTimeSlots) {
   }
 
   const rowToUpdate = teacherDayRowIndex + 1; // 1-indexed row number
-  
-  // 2. مسح جميع المواعيد القديمة في الصف ده
-  // هنمسح من عمود بداية المواعيد (D) لحد آخر عمود في الشيت، عشان نضمن إن كل المواعيد القديمة اتمسحت.
-  const lastSheetColumn = currentSheetDataRange.getLastColumn();
-  if (lastSheetColumn >= AVAILABLE_SCHEDULE_TIMES_START_COL) {
-      availableSchedulesSheet.getRange(rowToUpdate, AVAILABLE_SCHEDULE_TIMES_START_COL, 1, lastSheetColumn - AVAILABLE_SCHEDULE_TIMES_START_COL + 1).clearContent();
-      Logger.log(`[updateTeacherAvailableSchedules] Cleared range from col ${AVAILABLE_SCHEDULE_TIMES_START_COL} to ${lastSheetColumn} in row ${rowToUpdate}.`);
-  } else {
-      Logger.log(`[updateTeacherAvailableSchedules] No time columns to clear in row ${rowToUpdate} for ${teacherName} on ${day}.`);
+  // نقرأ الصف المحدد لنتعامل معه
+  const currentRowValues = availableSchedulesSheet.getRange(rowToUpdate, 1, 1, availableSchedulesSheet.getMaxColumns()).getValues()[0];
+  const currentRowDisplayValues = availableSchedulesSheet.getRange(rowToUpdate, 1, 1, availableSchedulesSheet.getMaxColumns()).getDisplayValues()[0];
+
+
+  const startColumnForTimes = AVAILABLE_SCHEDULE_TIMES_START_COL - 1; // 0-indexed column index for time slots
+
+  // Set (مجموعة) للمواعيد الجديدة لسهولة البحث فيها
+  const newTimeSlotsSet = new Set(newTimeSlots.map(slot => slot.toString().trim()));
+
+  // مصفوفة لتخزين الخلايا التي يجب مسحها (المواعيد القديمة التي لم تعد موجودة في القائمة الجديدة)
+  const rangesToClear = [];
+
+  // مصفوفة لتخزين المواعيد الجديدة التي يجب إضافتها
+  const slotsToAdd = [];
+
+  // مجموعة لتتبع المواعيد الموجودة حالياً في الصف والتي هي أيضاً في القائمة الجديدة (لا تمسح ولا تضاف)
+  const timesAlreadyInRowAndNewList = new Set();
+
+
+  // 1. نمر على المواعيد الموجودة حالياً في الصف ونحدد ما يجب مسحه وما يجب إضافته
+  for (let col = startColumnForTimes; col < currentRowDisplayValues.length; col++) {
+    const timeInCell = currentRowDisplayValues[col]; // القيمة المعروضة في الخلية
+
+    if (timeInCell && timeInCell.toString().trim() !== "") { // إذا كانت الخلية ليست فارغة
+      const trimmedTimeInCell = timeInCell.toString().trim();
+      if (newTimeSlotsSet.has(trimmedTimeInCell)) {
+        // الميعاد ده موجود في الصف القديم وموجود في القائمة الجديدة
+        timesAlreadyInRowAndNewList.add(trimmedTimeInCell);
+      } else {
+        // الميعاد ده موجود في الصف القديم لكن مش في القائمة الجديدة، يبقى لازم نمسحه
+        rangesToClear.push(availableSchedulesSheet.getRange(rowToUpdate, col + 1));
+      }
+    }
   }
 
-  // 3. كتابة المواعيد الجديدة بالترتيب في أول الخلايا الفارغة بدءاً من العمود D
-  if (newTimeSlots && newTimeSlots.length > 0) {
-      // فرز المواعيد الجديدة عشان تتكتب بترتيب زمني
-      // تأكدنا إن getTimeInMinutes موجودة في Code.gs
-      newTimeSlots.sort((a,b) => getTimeInMinutes(a) - getTimeInMinutes(b)); 
+  // 2. تحديد المواعيد الجديدة التي نحتاج لإضافتها
+  newTimeSlots.forEach(newSlot => {
+    const trimmedNewSlot = newSlot.toString().trim();
+    if (!timesAlreadyInRowAndNewList.has(trimmedNewSlot)) {
+      // الميعاد ده في القائمة الجديدة لكن مش موجود في الصف القديم، يبقى لازم نضيفه
+      slotsToAdd.push(trimmedNewSlot);
+    }
+  });
 
-      for (let i = 0; i < newTimeSlots.length; i++) {
-          const slotToTrim = newTimeSlots[i].toString().trim();
-          const colToWrite = AVAILABLE_SCHEDULE_TIMES_START_COL + i; // العمود هيكون D, E, F, وهكذا بالترتيب
+  // 3. تنفيذ عمليات المسح
+  if (rangesToClear.length > 0) {
+    rangesToClear.forEach(range => range.clearContent());
+    Logger.log(`[updateTeacherAvailableSchedules] Cleared ${rangesToClear.length} old slots no longer present in new list.`);
+  }
 
-          // لو العمود اللي هنكتب فيه أكبر من آخر عمود في الشيت، هنحتاج نضيف أعمدة جديدة (لو السكربت بيسمح)
-          // لكن لأغراض هذا المشروع، نفترض إن فيه أعمدة كفاية (عادة بتكون كتير)
-          if (colToWrite <= lastSheetColumn) { 
-            availableSchedulesSheet.getRange(rowToUpdate, colToWrite).setValue(slotToTrim);
-            Logger.log(`[updateTeacherAvailableSchedules] Written new slot: '${slotToTrim}' to Row ${rowToUpdate}, Col ${colToWrite}.`);
-          } else {
-            Logger.log(`[updateTeacherAvailableSchedules] WARNING: Skipping slot '${slotToTrim}'. No more columns available in row ${rowToUpdate}.`);
-          }
+  // 4. تنفيذ عمليات الإضافة (ملء الخلايا الفارغة)
+  if (slotsToAdd.length > 0) {
+    let addedCount = 0;
+    let currentSearchCol = startColumnForTimes; // نبدأ البحث عن خانات فارغة من أول عمود للمواعيد
+
+    while (addedCount < slotsToAdd.length) {
+      // التأكد من وجود أعمدة كافية
+      const currentMaxColumns = availableSchedulesSheet.getMaxColumns();
+      if (currentSearchCol + 1 > currentMaxColumns) { // +1 لتحويل إلى 1-indexed
+        availableSchedulesSheet.insertColumnAfter(currentMaxColumns);
+        Logger.log(`[updateTeacherAvailableSchedules] Added a new column after column ${currentMaxColumns}.`);
+        // بعد إضافة عمود، نحتاج لإعادة قراءة الصف لكي تكون currentRowDisplayValues محدثة
+        // هذا يمكن أن يكون مكلفًا إذا تم إضافة أعمدة كثيرة جداً داخل هذه الحلقة
+        // ولكن بالنسبة لعدد قليل من المواعيد هذا مقبول.
+        currentRowDisplayValues.push(''); // نضيف خلية فارغة وهمية لتمثيل العمود الجديد
       }
+
+      // التحقق من أن الخلية فارغة (حتى لو كانت موجودة من قبل ولكن تم مسحها)
+      const cellValue = availableSchedulesSheet.getRange(rowToUpdate, currentSearchCol + 1).getDisplayValue();
+      if (!cellValue || cellValue.toString().trim() === "") {
+        // وجدنا خلية فارغة، نكتب فيها الميعاد الجديد
+        availableSchedulesSheet.getRange(rowToUpdate, currentSearchCol + 1).setValue(slotsToAdd[addedCount]);
+        Logger.log(`[updateTeacherAvailableSchedules] Added new slot: '${slotsToAdd[addedCount]}' to Row ${rowToUpdate}, Col ${currentSearchCol + 1}.`);
+        addedCount++;
+      }
+      currentSearchCol++; // ننتقل للعمود التالي في كل الأحوال
+    }
   } else {
-    Logger.log("[updateTeacherAvailableSchedules] No new time slots to write for this day.");
+    Logger.log("[updateTeacherAvailableSchedules] No new time slots to add to this day.");
   }
 
   return { status: "success", message: "تم تحديث المواعيد بنجاح." };
+}
+
+
+
+
+
+/**
+ * تجلب ملخصاً شاملاً لبيانات الأكاديمية (الطلاب، التجديدات، المدفوعات).
+ * تُستخدم بواسطة واجهة الويب لعرض لوحة الملخص.
+ * @returns {string} سلسلة JSON تحتوي على كائن ملخص البيانات.
+ */
+function getAcademySummary() {
+  Logger.log("getAcademySummary: Starting execution.");
+
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const masterSheet = spreadsheet.getSheetByName(MASTER_SHEET_NAME);
+  const historySheet = spreadsheet.getSheetByName(HISTORY_SHEET_NAME); // لبيانات المدفوعات
+
+  if (!masterSheet) {
+    Logger.log(`خطأ: شيت المشرف الرئيسي '${MASTER_SHEET_NAME}' غير موجود.`);
+    return JSON.stringify({});
+  }
+  if (!historySheet) {
+    Logger.log(`خطأ: شيت السجل التاريخي '${HISTORY_SHEET_NAME}' غير موجود.`);
+    // يمكن الاستمرار إذا لم تكن بيانات المدفوعات حاسمة، أو إرجاع خطأ.
+  }
+
+  let totalStudents = 0;
+  let activeStudents = 0; // الطلاب الذين لديهم حصص متبقية أو حالة "تم التجديد"
+  let renewalNeeded = 0; // الطلاب الذين حالتهم "مطلوب التجديد" أو فارغة
+  let overdueRenewal = 0; // الطلاب الذين حالتهم "تجاوز الحد" أو حالات "إيقاف"
+  let monthlyPayments = 0;
+  let yearlyPayments = 0;
+
+  // 1. جلب بيانات الطلاب من الشيت الرئيسي
+  const masterData = masterSheet.getDataRange().getValues();
+  // تأكد من أن MASTER_FIRST_DATA_ROW صحيحة
+  const studentRows = masterData.slice(MASTER_FIRST_DATA_ROW - 1);
+
+  totalStudents = studentRows.length; // إجمالي عدد الصفوف بعد أول صفوف
+
+  studentRows.forEach(row => {
+    const status = (row[MASTER_RENEWAL_STATUS_COL - 1] || '').toString().trim();
+    const attendance = parseFloat(row[MASTER_TOTAL_ATTENDANCE_COL - 1]) || 0; // عدد الحصص الحاضرة
+
+    if (status === 'تم التجديد') {
+      activeStudents++; // يمكن تعريف النشط بأنه تم التجديد
+    }
+
+    if (status === 'مطلوب التجديد') {
+      renewalNeeded++;
+    } else if (status === 'تجاوز الحد') {
+      overdueRenewal++;
+    } else if (status === 'لا يوجد حضور' || status === '') { // اعتبرهم بحاجة للتجديد أو مراجعة
+      renewalNeeded++;
+    }
+  });
+
+  // 2. جلب بيانات المدفوعات من السجل التاريخي
+  if (historySheet) {
+    const historyData = historySheet.getDataRange().getValues();
+    const currentMonth = new Date().getMonth(); // 0-indexed
+    const currentYear = new Date().getFullYear();
+
+    // نحدد الأعمدة ذات الصلة بالشهر الحالي من رؤوس السجل التاريخي
+    const historyHeadersRow1 = historySheet.getRange(1, 1, 1, historySheet.getLastColumn()).getValues()[0];
+    const currentMonthName = MONTH_NAMES_AR[currentMonth];
+
+    let monthStartColIndex = -1;
+    for(let i=0; i < historyHeadersRow1.length; i++){
+      if(historyHeadersRow1[i].toString().trim() === currentMonthName){
+        monthStartColIndex = i + 1; // 1-indexed column number
+        break;
+      }
+    }
+
+    if (monthStartColIndex !== -1) {
+      const currentMonthAmountColIndex = monthStartColIndex + HISTORY_MONTH_AMOUNT_OFFSET;
+      
+      // نمر على صفوف بيانات الطلاب في السجل التاريخي
+      for (let i = HISTORY_FIRST_DATA_ROW - 1; i < historyData.length; i++) {
+        const row = historyData[i];
+        const paymentDate = row[monthStartColIndex + HISTORY_MONTH_DATE_OFFSET -1]; // عمود التاريخ الفعلي
+        const amount = parseFloat(row[currentMonthAmountColIndex - 1]) || 0;
+
+        // التأكد من أن المبلغ هو لهذا الشهر والسنة (إذا كان التاريخ متاحاً)
+        if (amount > 0) {
+            if (paymentDate instanceof Date && paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+                monthlyPayments += amount;
+            } else if (typeof paymentDate === 'string' && paymentDate.includes(currentMonthName) && paymentDate.includes(currentYear.toString())) {
+                // إذا كان التاريخ نصاً (يمكن تحسين هذا التحقق)
+                monthlyPayments += amount;
+            }
+            // إذا لم يكن التاريخ متوفراً، افترض أنه لهذا الشهر
+            // monthlyPayments += amount; 
+        }
+        
+        // لحساب الدفعات السنوية، يجب أن نمر على كل أعمدة المدفوعات لكل شهر في تاريخ هذا العام
+        // هذا يتطلب منطقاً أكثر تعقيداً لتحديد جميع أعمدة المدفوعات لجميع الشهور في هذا العام
+        // أو دمج بيانات الدفع في عمود واحد لسهولة التجميع
+        // حالياً، سنترك yearlyPayments كافتراضي أو نقوم بجمع كل المبالغ الموجودة لتوضيح الفكرة.
+        // هذا الجزء يحتاج إلى تعديل دقيق بناءً على هيكل شيت السجل التاريخي.
+        for (let col = HISTORY_FIRST_MONTH_COL_START -1; col < row.length; col += HISTORY_MONTH_TRIPLET_SIZE) {
+            const historyPaymentAmount = parseFloat(row[col + HISTORY_MONTH_AMOUNT_OFFSET - 1]) || 0;
+            // يمكن إضافة منطق للتحقق من سنة المدفوعات هنا إذا كانت الأعمدة تتكرر لسنوات
+            yearlyPayments += historyPaymentAmount;
+        }
+
+      }
+    }
+  }
+
+
+  // تجهيز كائن الملخص
+  const summary = {
+    totalStudents: totalStudents,
+    activeStudents: activeStudents, // تحتاج لتعريف دقيق لما هو "طالب نشط"
+    renewalNeeded: renewalNeeded,
+    overdueRenewal: overdueRenewal,
+    monthlyPayments: monthlyPayments,
+    yearlyPayments: yearlyPayments // تحتاج لمنطق جلب دقيق
+  };
+
+  Logger.log("getAcademySummary: Summary data:", JSON.stringify(summary));
+  return JSON.stringify(summary);
 }
