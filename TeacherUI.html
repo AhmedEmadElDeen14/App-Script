@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>واجهة المعلم</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Cairo', Arial, sans-serif;
+      background-color: #f4f7f6;
+      margin: 0;
+      padding: 20px;
+      direction: rtl;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    h1, h2 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 25px;
+      font-weight: 700;
+    }
+    .form-group {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .form-group input[type="tel"] {
+      flex-grow: 1;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+    .form-group button {
+      /* padding: 10px 20px; */
+      border-radius: 5px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .form-group button:hover {
+      background-color: #2980b9;
+    }
+    .info-card {
+        background-color: #ecf0f1;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+        border: 1px solid #bdc3c7;
+    }
+    .info-card p {
+        margin: 5px 0;
+        font-size: 1.1em;
+        color: #34495e;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: right;
+    }
+    th {
+      background-color: #f2f2f2;
+      font-weight: 600;
+    }
+    .status-message {
+      text-align: center;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+    .status-message.error { background-color: #ffe0e0; color: #cc0000; }
+    .status-message.success { background-color: #e0ffe0; color: #00cc00; }
+    .hidden { display: none; }
+    .button {
+      font-family: 'Cairo', Arial, sans-serif;
+      /* padding: 8px 15px; */
+      border-radius: 5px;
+      font-size: 0.95em;
+      transition: background-color 0.3s ease;
+      cursor: pointer;
+      border: none;
+    }
+    .button.attend { background-color: #27ae60; color: white; }
+    .button.attend:hover { background-color: #229a53; }
+    .button.absent { background-color: #e67e22; color: white; }
+    .button.absent:hover { background-color: #d35400; }
+    .button.postpone { background-color: #3498db; color: white; }
+    .button.postpone:hover { background-color: #2980b9; }
+
+    /* Toast Notifications */
+    #toast-container {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10000;
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 10px;
+        align-items: center;
+    }
+    .toast {
+        background-color: #333;
+        color: white;
+        /* padding: 15px 25px; */
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out, transform 0.5s ease-out;
+        transform: translateY(20px);
+        min-width: 250px;
+        max-width: 400px;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-family: 'Cairo', Arial, sans-serif;
+        font-size: 1.1em;
+    }
+    .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .toast.success { background-color: #27ae60; }
+    .toast.error { background-color: #e74c3c; }
+    .toast.info { background-color: #3498db; }
+    .toast i { margin-right: 0; margin-left: 10px; }
+    .status-attended {
+        color: #27ae60;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+    .status-absent {
+        color: #e67e22;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+    .status-postponed {
+        color: #3498db;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      display: none; /* Modified: Hidden by default */
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 700px;
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+      direction: rtl;
+    }
+
+    .modal-close-button {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: none;
+      border: none;
+      font-size: 1.5em;
+      color: #777;
+      cursor: pointer;
+      transition: color 0.3s ease;
+      padding: 0;
+    }
+    .modal-close-button:hover {
+      color: #333;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .modal-actions .button {
+        min-width: 120px;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal-actions .save-button {
+        background-color: #28a745;
+        color: white;
+    }
+    .modal-actions .save-button:hover {
+        background-color: #218838;
+    }
+    .modal-actions .cancel-button {
+        background-color: #dc3545;
+        color: white;
+    }
+    .modal-actions .cancel-button:hover {
+        background-color: #c82333;
+    }
+
+    .time-slots-modal-sections {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        margin-top: 20px;
+    }
+    @media (min-width: 768px) {
+        .time-slots-modal-sections {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    .slots-section h4 {
+        text-align: center;
+        color: #34495e;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 8px;
+    }
+    .time-slots-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+    }
+    .time-slot-chip {
+        /* padding: 10px 15px; */
+        border: 1px solid #ccc;
+        border-radius: 20px;
+        background-color: #f0f0f0;
+        cursor: pointer;
+        transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+        font-size: 0.9em;
+        white-space: nowrap;
+        font-weight: 600;
+        color: #555;
+    }
+    .time-slot-chip:hover:not(.disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .time-slot-chip.selected {
+        background-color: #2ecc71;
+        color: white;
+        border-color: #2ecc71;
+    }
+    .time-slot-chip.disabled {
+        background-color: #e74c3c;
+        color: white;
+        border-color: #e74c3c;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+    .time-slot-chip:not(.selected):not(.disabled) {
+        background-color: #bdc3c7;
+        color: #444;
+        border-color: #bdc3c7;
+    }
+
+    .no-slots-message {
+        text-align: center;
+        color: #777;
+        padding: 20px;
+        font-style: italic;
+    }
+
+    .summary-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .stat-card {
+      background-color: #f8f8f8;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+    }
+    .stat-card h3 {
+      font-size: 1.2em;
+      color: #34495e;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .stat-card p {
+      font-size: 2.2em;
+      font-weight: 700;
+      color: #2ecc71; /* لون افتراضي للرقم */
+      margin: 0;
+    }
+    /* يمكن إضافة ألوان مختلفة للـ stat-card p بناءً على نوع الإحصائية إذا أردت */
+    .stat-card p.danger { color: #e74c3c; } /* للغياب أو الملغي */
+    .stat-card p.info { color: #3498db; } /* للتأجيل */
+    .stat-card p.warning { color: #f1c40f; } /* لغياب غير مخصوم */
+
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>واجهة المعلم - تسجيل الحضور والغياب</h1>
+    
+    <div class="form-group">
+      <input type="tel" id="teacherPhone" placeholder="أدخل رقم هاتف المعلم">
+      <button onclick="window.authenticateTeacher()"><i class="fas fa-search"></i> بحث</button>
+    </div>
+
+    <div id="teacherOptions" class="hidden" style="text-align: center; margin-top: 25px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px;">
+      <button class="button" style="background-color: #3498db; color: white;" onclick="window.showTodayClassesPage()"><i class="fas fa-clipboard-list"></i> حصص اليوم (تسجيل حضور الطلاب)</button>
+      <button class="button" style="background-color: #34495e; color: white;" onclick="window.showTeacherStudentsPage()"><i class="fas fa-users"></i> طلابي ومواعيدهم</button>
+      <button class="button" style="background-color: #2980b9; color: white;" onclick="window.showManageTeacherSlotsPage()"><i class="fas fa-clock"></i> إدارة مواعيدي</button>
+      <button class="button" style="background-color: #28a745; color: white;" onclick="window.showTeacherMonthlySummaryPage()"><i class="fas fa-chart-pie"></i> ملخص الشهر الحالي</button>
+
+    </div>
+    <div id="teacherInfoDisplay" class="hidden info-card">
+      <h2 id="currentTeacherNameDisplay"></h2>
+      <p>جدول الطلاب لهذا اليوم: <span id="currentDayNameDisplay"></span></p>
+    </div>
+
+    <div id="attendanceSection" class="hidden">
+      <h3>الطلاب المسجلون لهذا اليوم:</h3>
+      <table id="attendanceTable">
+        <thead>
+          <tr>
+            <th>اسم الطالب</th>
+            <th>معرف الطالب (ID)</th>
+            <th>الميعاد</th>
+            <th>الإجراء</th>
+          </tr>
+        </thead>
+        <tbody>
+          </tbody>
+      </table>
+    </div>
+    <p id="teacherStatusMessage" class="status-message hidden"></p>
+  </div>
+
+  <div id="teacherStudentsPage" class="container hidden" style="margin-top: 20px;">
+    <h1><i class="fas fa-users"></i> طلابي ومواعيدهم</h1>
+    <div class="info-card">
+        <p>المعلم الحالي: <strong id="studentsTeacherName"></strong></p>
+    </div>
+
+    <div class="form-group" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+      <div style="flex-grow: 1; min-width: 200px;">
+        <label for="studentsSearch">بحث (الاسم، ID، الهاتف):</label>
+        <input type="text" id="studentsSearch" placeholder="ابحث هنا..." onkeyup="window.filterAndSortTeacherStudents()">
+      </div>
+      <div style="flex-grow: 1; min-width: 150px;">
+        <label for="studentsFilterStatus">الحالة:</label>
+        <select id="studentsFilterStatus" onchange="window.filterAndSortTeacherStudents()">
+          <option value="">كل الحالات</option>
+          <option value="مشترك">مشترك</option>
+          <option value="تجريبي">تجريبي</option>
+          <option value="قيد التسجيل">قيد التسجيل</option>
+          <option value="معلق">معلق</option>
+          </select>
+      </div>
+      <div style="flex-grow: 1; min-width: 150px;">
+        <label for="studentsFilterPackage">الباقة:</label>
+        <select id="studentsFilterPackage" onchange="window.filterAndSortTeacherStudents()">
+          <option value="">كل الباقات</option>
+        </select>
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-bottom: 20px;">
+        <button class="button" style="background-color: #3498db;" onclick="window.loadTeacherStudentsData()"><i class="fas fa-sync-alt"></i> تحديث البيانات</button>
+    </div>
+
+    <table id="teacherStudentsTable">
+      <thead>
+        <tr>
+          <th onclick="window.filterAndSortTeacherStudents('name')">الاسم <i class="fas fa-sort"></i></th>
+          <th onclick="window.filterAndSortTeacherStudents('displayID')">ID <i class="fas fa-sort"></i></th>
+          <th onclick="window.filterAndSortTeacherStudents('phone')">رقم الهاتف <i class="fas fa-sort"></i></th>
+          <th onclick="window.filterAndSortTeacherStudents('basicStatus')">الحالة <i class="fas fa-sort"></i></th>
+          <th onclick="window.filterAndSortTeacherStudents('packageName')">الباقة <i class="fas fa-sort"></i></th>
+          <th onclick="window.filterAndSortTeacherStudents('day1')">الميعاد الأول <i class="fas fa-sort"></i></th>
+          <th onclick="window.filterAndSortTeacherStudents('day2')">الميعاد الثاني <i class="fas fa-sort"></i></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="7" class="no-data-message">جارٍ تحميل بيانات الطلاب...</td></tr>
+      </tbody>
+    </table>
+    
+    <div style="text-align: center; margin-top: 20px;">
+        <button class="button" style="background-color: #6c757d;" onclick="window.hideTeacherStudentsPage()"><i class="fas fa-arrow-right"></i> العودة للواجهة الرئيسية</button>
+    </div>
+  </div>
+
+  <div id="manageTeacherSlotsPage" class="container hidden" style="margin-top: 20px;">
+      <h1><i class="fas fa-clock"></i> إدارة مواعيدي</h1>
+      <div class="info-card">
+          <p>المعلم الحالي: <strong id="manageSlotsTeacherNameDisplay"></strong></p>
+      </div>
+
+      <p class="no-slots-message hidden" id="noManageSlotsMessageDisplay">لا توجد مواعيد مضافة لهذا المعلم حالياً.</p>
+      <table class="teacher-slots-table">
+          <thead>
+              <tr>
+                  <th>اليوم</th>
+                  <th>المواعيد المتاحة/المحجوزة</th>
+                  <th>الإجراء</th>
+              </tr>
+          </thead>
+          <tbody id="teacherSlotsTableBodyDisplay">
+              <tr><td colspan="3" class="no-data-message">جارٍ تحميل المواعيد...</td></tr>
+          </tbody>
+      </table>
+      <p id="manageSlotsStatusMessageDisplay" class="status-message hidden"></p>
+
+      <div style="text-align: center; margin-top: 20px;">
+          <button class="button" style="background-color: #6c757d;" onclick="window.hideManageTeacherSlotsPage()"><i class="fas fa-arrow-right"></i> العودة للواجهة الرئيسية</button>
+      </div>
+  </div>
+
+ <div id="teacherMonthlySummaryPage" class="container hidden" style="margin-top: 20px;">
+    <h1><i class="fas fa-chart-pie"></i> ملخص الشهر الحالي</h1>
+    <div class="info-card">
+        <p>المعلم الحالي: <strong id="summaryTeacherName"></strong></p>
+        <p>الشهر الحالي: <strong id="summaryCurrentMonth"></strong></p>
+    </div>
+
+    <div class="summary-stats-grid">
+      <div class="stat-card">
+        <h3>حصص تم إتمامها (حضر)</h3>
+        <p id="summaryCompletedClasses">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>إجمالي الغيابات</h3>
+        <p id="summaryTotalAbsences">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>حصص تم تأجيلها</h3>
+        <p id="summaryPostponedClasses">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>إجمالي دقائق العمل</h3>
+        <p id="summaryTotalWorkingMinutes">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>إجمالي ساعات العمل</h3>
+        <p id="summaryTotalWorkingHours">0.00</p>
+      </div>
+      <div class="stat-card">
+        <h3>إجمالي عدد طلابي</h3>
+        <p id="summaryTotalRegisteredStudents">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>مواعيد محجوزة</h3>
+        <p id="summaryTotalBookedSlots">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>مواعيد متاحة</h3>
+        <p id="summaryTotalAvailableSlots">0</p>
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 20px;">
+        <button class="button" style="background-color: #3498db;" onclick="window.loadTeacherMonthlySummaryData()"><i class="fas fa-sync-alt"></i> تحديث الملخص</button>
+        <button class="button" style="background-color: #6c757d;" onclick="window.hideTeacherMonthlySummaryPage()"><i class="fas fa-arrow-right"></i> العودة للواجهة الرئيسية</button>
+    </div>
+  </div>
+
+  <div id="timeSlotSelectionModal" class="modal-overlay hidden">
+      <div class="modal-content">
+          <button class="modal-close-button" onclick="window.closeTimeSlotModal()"><i class="fas fa-times"></i></button>
+          <h3 id="modalDayTitle">تحديد مواعيد يوم </h3>
+
+          <div class="time-slots-modal-sections">
+              <div class="slots-section">
+                  <h4>مواعيد صباحية (09:00 ص - 03:00 م)</h4>
+                  <div class="time-slots-grid" id="morningSlotsGrid">
+                      </div>
+              </div>
+
+              <div class="slots-section">
+                  <h4>مواعيد مسائية (03:00 م - 11:30 م)</h4>
+                  <div class="time-slots-grid" id="eveningSlotsGrid">
+                      </div>
+              </div>
+          </div>
+
+          <div class="modal-actions">
+              <button class="button save-button" onclick="window.saveSelectedSlots()"><i class="fas fa-check-circle"></i> تأكيد المواعيد</button>
+              <button class="button cancel-button" onclick="window.closeTimeSlotModal()"><i class="fas fa-times"></i> إلغاء</button>
+          </div>
+      </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script>
+    // ************************************ //
+    //          متغيرات عالمية مشتركة لواجهة المعلم //
+    // ************************************ //
+    let currentTeacherId = '';
+    let currentTeacherName = '';
+    let currentDay = '';
+    let currentMonthYearDisplay = '';
+
+    // ************************************ //
+    //          متغيرات عالمية خاصة بـ Manage Teacher Slots Page //
+    // ************************************ //
+    let currentTeacherAllAvailableSlots = [];
+    let modalSelectedDay = '';
+    let modalSelectedSlots = [];
+    // قائمة المواعيد المحتملة
+    let possibleTimeSlots24Hour = [ // Changed to let to allow sorting later
+        "09:00 - 09:30", "09:30 - 10:00", "10:00 - 10:30", "10:30 - 11:00",
+        "11:00 - 11:30", "11:30 - 12:00", "12:00 - 12:30", "12:30 - 13:00",
+        "13:00 - 13:30", "13:30 - 14:00", "14:00 - 14:30", "14:30 - 15:00",
+        "15:00 - 15:30", "15:30 - 16:00", "16:00 - 16:30", "16:30 - 17:00",
+        "17:00 - 17:30", "17:30 - 18:00", "18:00 - 18:30", "18:30 - 19:00",
+        "19:00 - 19:30", "19:30 - 20:00", "20:00 - 20:30", "20:30 - 21:00",
+        "21:00 - 21:30", "21:30 - 22:00", "22:00 - 22:30", "22:30 - 23:00"
+    ];
+    // No direct sort here
+
+
+    // ************************************ //
+    //          متغيرات عالمية خاصة بصفحة طلاب المعلم //
+    // ************************************ //
+    let teacherStudentsRawData = [];
+    let teacherStudentsSortColumn = null;
+    let teacherStudentsSortDirection = 'asc';
+
+
+    // ************************************ //
+    //          دوال عامة مساعدة (يجب أن تكون في الأعلى لتجنب أخطاء "is not a function") //
+    // ************************************ //
+
+    // دالة لعرض رسائل تنبيه مؤقتة (Toasts)
+    window.showToast = function(message, type = 'info', duration = 3000) {
+        const toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            console.error('Toast container not found!');
+            alert(message);
+            return;
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        let iconHtml = '';
+        if (type === 'success') {
+            iconHtml = '<i class="fas fa-check-circle"></i>';
+        } else if (type === 'error') {
+            iconHtml = '<i class="fas fa-exclamation-circle"></i>';
+        } else { // info
+            iconHtml = '<i class="fas fa-info-circle"></i>';
+        }
+
+        toast.innerHTML = `${message} ${iconHtml}`;
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+            toast.addEventListener('transitionend', () => {
+                toast.remove();
+            });
+        }, duration);
+    };
+
+    // دالة مساعدة لتحويل تنسيق 24 ساعة (HH:mm) إلى 12 ساعة (H:mm ص/م).
+    window.formatTime12Hour = function(timeString) {
+        if (typeof timeString !== 'string' || timeString.trim() === '') return '';
+        let time24hrPart = timeString.split(' - ')[0].trim();
+        if (!time24hrPart.includes(':')) return timeString;
+        const [hours, minutes] = time24hrPart.split(':').map(Number);
+        if (isNaN(hours) || isNaN(minutes)) return timeString;
+        const ampm = hours >= 12 ? 'م' : 'ص';
+        const formattedHours = hours % 12 || 12;
+        return `${formattedHours}:${minutes < 10 ? '0' : ''}${minutes} ${ampm}`;
+    };
+
+    // دالة مساعدة لجلب الوقت بالدقائق (للفرز)
+    window.getTimeInMinutes = function(timeString) {
+        if (typeof timeString !== 'string' || timeString.trim() === '') return 0;
+        let time24hrPart = timeString.split(' - ')[0].trim();
+        const [hours, minutes] = time24hrPart.split(':').map(Number);
+        if (isNaN(hours) || isNaN(minutes)) return 0;
+        return hours * 60 + minutes;
+    };
+
+
+    // ************************************ //
+    //          دوال التنقل بين الصفحات وإظهار المحتوى بعد تسجيل الدخول //
+    // ************************************ //
+
+    /**
+     * تُحقق من رقم هاتف المعلم وتُظهر الخيارات بعد تسجيل الدخول.
+     */
+    window.authenticateTeacher = function() {
+      const teacherPhoneInput = document.getElementById('teacherPhone');
+      let phone = teacherPhoneInput.value.trim();
+
+      if (!phone) {
+        showToast("الرجاء إدخال رقم هاتف المعلم.", 'info');
+        return;
+      }
+
+      const searchButton = document.querySelector('.form-group button');
+      const originalButtonText = searchButton.innerHTML;
+      searchButton.disabled = true;
+      searchButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> بحث';
+      
+      // إخفاء جميع الأقسام المحتملة قبل إظهار الخيارات
+      document.getElementById('teacherOptions').classList.add('hidden');
+      document.getElementById('teacherInfoDisplay').classList.add('hidden');
+      document.getElementById('attendanceSection').classList.add('hidden');
+      document.getElementById('teacherStudentsPage').classList.add('hidden');
+      document.getElementById('manageTeacherSlotsPage').classList.add('hidden');
+      document.getElementById('timeSlotSelectionModal').classList.add('hidden');
+      document.getElementById('teacherStatusMessage').classList.add('hidden');
+      document.querySelector("#attendanceTable tbody").innerHTML = '';
+
+      // تحديد اليوم الحالي تلقائيًا (لـ "حصص اليوم")
+      const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+      const d = new Date();
+      currentDay = days[d.getDay()];
+      document.getElementById('currentDayNameDisplay').textContent = currentDay;
+
+      google.script.run
+        .withSuccessHandler(response => {
+          searchButton.disabled = false;
+          searchButton.innerHTML = originalButtonText;
+
+          if (response && response.error) {
+            showToast(`خطأ: ${response.error}`, 'error');
+            document.getElementById('teacherStatusMessage').textContent = response.error;
+            document.getElementById('teacherStatusMessage').classList.remove('hidden');
+            return;
+          }
+
+          if (response && response.teacherId) {
+            currentTeacherId = response.teacherId;
+            currentTeacherName = response.teacherName;
+            document.getElementById('currentTeacherNameDisplay').textContent = `مرحبًا، ${currentTeacherName}`;
+            
+            // إظهار أزرار الخيارات
+            document.getElementById('teacherOptions').classList.remove('hidden');
+            teacherPhoneInput.style.display = 'none';
+            searchButton.style.display = 'none';
+
+            showToast(`مرحبًا، ${currentTeacherName}!`, 'success');
+          } else {
+            showToast('لم يتم العثور على معلم بهذا الرقم.', 'info');
+            document.getElementById('teacherStatusMessage').textContent = 'لم يتم العثور على معلم بهذا الرقم.';
+            document.getElementById('teacherStatusMessage').classList.remove('hidden');
+          }
+        })
+        .withFailureHandler(error => {
+          searchButton.disabled = false;
+          searchButton.innerHTML = originalButtonText;
+          showToast('حدث خطأ أثناء البحث عن المعلم: ' + error.message, 'error');
+          document.getElementById('teacherStatusMessage').textContent = 'حدث خطأ أثناء البحث عن المعلم: ' + error.message;
+          document.getElementById('teacherStatusMessage').classList.remove('hidden');
+          console.error("Error authenticating teacher:", error);
+        })
+        .getTeacherDetailsByPhoneFromSupervisor(phone);
+    };
+    
+    /**
+     * تُظهر صفحة حصص اليوم للمعلم وتُحمل بيانات الطلاب.
+     */
+    window.showTodayClassesPage = function() {
+      if (!currentTeacherId || !currentTeacherName) {
+            showToast("الرجاء تسجيل الدخول أولاً.", 'error');
+            return;
+      }
+      // إخفاء الأقسام الأخرى
+      document.getElementById('teacherStudentsPage').classList.add('hidden');
+      document.getElementById('manageTeacherSlotsPage').classList.add('hidden');
+      document.getElementById('timeSlotSelectionModal').classList.add('hidden');
+      document.getElementById('teacherStatusMessage').classList.add('hidden');
+
+      document.getElementById('teacherInfoDisplay').classList.remove('hidden');
+      document.getElementById('attendanceSection').classList.remove('hidden');
+      document.querySelector("#attendanceTable tbody").innerHTML = '';
+
+      document.getElementById('teacherStatusMessage').textContent = 'جارٍ تحميل طلاب الحصص لهذا اليوم...';
+      document.getElementById('teacherStatusMessage').classList.remove('hidden');
+
+      google.script.run
+        .withSuccessHandler(students => {
+          document.getElementById('teacherStatusMessage').classList.add('hidden');
+          const tableBody = document.querySelector("#attendanceTable tbody");
+          tableBody.innerHTML = ''; 
+
+          if (students && students.error) {
+                showToast(`خطأ في تحميل الطلاب: ${students.error}`, 'error');
+                tableBody.innerHTML = `<tr><td colspan="4" class="no-data-message" style="color: red;">خطأ في تحميل البيانات: ${students.error}</td></tr>`;
+                document.getElementById('attendanceSection').classList.add('hidden'); 
+                return;
+          }
+
+          if (!students || students.length === 0) {
+            document.getElementById('teacherStatusMessage').textContent = 'لا توجد طلاب لهذا اليوم.';
+            document.getElementById('teacherStatusMessage').classList.remove('hidden');
+            document.getElementById('attendanceSection').classList.add('hidden'); 
+            return;
+          }
+
+          document.getElementById('attendanceSection').classList.remove('hidden');
+          students.forEach(student => {
+            const row = document.createElement('tr');
+            const displayId = student.studentID || student.trialID || '';
+
+            row.innerHTML = `
+              <td>${student.name || ''}</td>
+              <td>${displayId}</td>
+              <td>${formatTime12Hour(student.timeSlot || '')}</td>
+              <td>
+                  <button class="button attend" onclick="window.markStudentAttendance(this, '${displayId}', '${student.name}', '${student.timeSlot}', 'حضر')"><i class="fas fa-check"></i> حضر</button>
+                  <button class="button absent" onclick="window.markStudentAttendance(this, '${displayId}', '${student.name}', '${student.timeSlot}', 'غاب')"><i class="fas fa-user-times"></i> غاب</button>
+                  <button class="button postpone" onclick="window.markStudentAttendance(this, '${displayId}', '${student.name}', '${student.timeSlot}', 'تأجيل')"><i class="fas fa-calendar-alt"></i> تأجيل</button>
+              </td>
+            `;
+            tableBody.appendChild(row);
+          });
+        })
+        .withFailureHandler(error => {
+          document.getElementById('teacherStatusMessage').textContent = 'حدث خطأ أثناء تحميل جدول الحضور: ' + error.message;
+          document.getElementById('teacherStatusMessage').classList.remove('hidden');
+          showToast('حدث خطأ أثناء تحميل جدول الحضور: ' + error.message, 'error');
+          console.error("Error loading attendance students:", error);
+          document.getElementById('attendanceSection').classList.add('hidden');
+        })
+        .getTeacherScheduleForDay(currentTeacherId, currentDay);
+    };
+
+    /**
+     * تسجيل حضور أو غياب الطالب في شيت المعلم.
+     */
+    window.markStudentAttendance = function(buttonElement, studentId, studentName, timeSlot, status) {
+        if (!currentTeacherId || !currentTeacherName || !currentDay) {
+            showToast("خطأ: بيانات المعلم غير محددة.", 'error');
+            return;
+        }
+
+        const rowButtons = buttonElement.parentNode.querySelectorAll('button');
+        rowButtons.forEach(btn => btn.disabled = true);
+
+        google.script.run
+            .withSuccessHandler(response => {
+                if (response && response.success) {
+                    showToast(response.success, 'success');
+                    rowButtons.forEach(btn => btn.style.display = 'none');
+                    const statusCell = buttonElement.parentNode;
+                    let iconClass;
+                    let statusClassName;
+                    if (status === 'حضر') {
+                        iconClass = 'check-circle';
+                        statusClassName = 'attended';
+                    } else if (status === 'غاب') {
+                        iconClass = 'times-circle';
+                        statusClassName = 'absent';
+                    } else if (status === 'تأجيل') {
+                        iconClass = 'calendar-alt';
+                        statusClassName = 'postponed';
+                    }
+                    const newStatusDiv = document.createElement('div');
+                    newStatusDiv.className = `status-${statusClassName}`;
+                    newStatusDiv.innerHTML = `<i class="fas fa-${iconClass}"></i> تم تسجيل ${status}`;
+                    statusCell.appendChild(newStatusDiv);
+                    
+                } else if (response && response.error) {
+                    showToast(response.error, 'error');
+                    rowButtons.forEach(btn => btn.disabled = false);
+                }
+            })
+            .withFailureHandler(error => {
+                showToast(`خطأ في تسجيل ${status}: ${error.message}`, 'error');
+                console.error(`Error marking ${status}:`, error);
+                rowButtons.forEach(btn => btn.disabled = false);
+            })
+            .recordStudentAttendanceInTeacherSheet(currentTeacherId, studentId, studentName, currentDay, timeSlot, status);
+    };
+
+    // ************************************ //
+    //          دوال خاصة بصفحة طلاب المعلم (Teacher Students Page) //
+    // ************************************ //
+    /**
+     * تُظهر صفحة "طلابي ومواعيدهم" وتُخفي الواجهة الرئيسية.
+     */
+    window.showTeacherStudentsPage = function() {
+        if (!currentTeacherId || !currentTeacherName) {
+            showToast("الرجاء تسجيل الدخول أولاً.", 'error');
+            return;
+        }
+
+        // إخفاء الأقسام الأخرى
+        document.getElementById('teacherInfoDisplay').classList.add('hidden');
+        document.getElementById('attendanceSection').classList.add('hidden');
+        document.getElementById('manageTeacherSlotsPage').classList.add('hidden');
+        document.getElementById('timeSlotSelectionModal').classList.add('hidden');
+        document.getElementById('teacherStatusMessage').classList.add('hidden');
+
+        document.getElementById('teacherStudentsPage').classList.remove('hidden');
+
+        document.getElementById('studentsTeacherName').textContent = currentTeacherName;
+
+        // تهيئة الفلاتر وحقول البحث
+        document.getElementById('studentsSearch').value = '';
+        document.getElementById('studentsFilterStatus').value = '';
+        document.getElementById('studentsFilterPackage').value = '';
+
+        window.loadPackagesForTeacherStudentsFilter();
+        window.loadTeacherStudentsData();
+    };
+
+    /**
+     * تُخفي صفحة "طلابي ومواعيدهم" وتُظهر الواجهة الرئيسية.
+     */
+    window.hideTeacherStudentsPage = function() {
+        document.getElementById('teacherStudentsPage').classList.add('hidden');
+        document.getElementById('teacherOptions').classList.remove('hidden');
+    };
+
+    /**
+     * لجلب قائمة الباقات لفلتر صفحة "طلابي ومواعيدهم"
+     */
+    window.loadPackagesForTeacherStudentsFilter = function() {
+        google.script.run
+            .withSuccessHandler(packages => {
+                const selectElement = document.getElementById('studentsFilterPackage');
+                selectElement.innerHTML = '<option value="">كل الباقات</option>';
+                if (packages && !packages.error) {
+                    packages.forEach(pkg => {
+                        const option = document.createElement('option');
+                        option.value = pkg;
+                        option.textContent = pkg;
+                        selectElement.appendChild(option);
+                    });
+                } else if (packages && packages.error) {
+                    showToast(`خطأ في تحميل الباقات: ${packages.error}`, 'error');
+                }
+            })
+            .withFailureHandler(error => {
+                showToast(`خطأ في تحميل الباقات: ${error.message}`, 'error');
+                console.error("Error loading packages for teacher students filter:", error);
+            })
+            .getSubscriptionPackageListFromSupervisor();
+    };
+
+    /**
+     * جلب بيانات جميع الطلاب لهذا المعلم من الواجهة الخلفية (ملف المشرف).
+     */
+    window.loadTeacherStudentsData = function() {
+        const tableBody = document.querySelector('#teacherStudentsTable tbody');
+        tableBody.innerHTML = '<tr><td colspan="7" class="no-data-message"><i class="fas fa-spinner fa-spin"></i> جارٍ تحميل بيانات الطلاب...</td></tr>';
+        
+        google.script.run
+            .withSuccessHandler(response => {
+                if (response && response.error) {
+                    tableBody.innerHTML = `<tr><td colspan="7" class="no-data-message" style="color: red;">خطأ في تحميل البيانات: ${response.error}</td></tr>`;
+                    showToast(`خطأ في تحميل بيانات الطلاب: ${response.error}`, 'error');
+                    console.error("Error loading teacher's students data:", response.error);
+                    return;
+                }
+                teacherStudentsRawData = response;
+                window.filterAndSortTeacherStudents(); // عرض البيانات بعد تحميلها
+            })
+            .withFailureHandler(error => {
+                tableBody.innerHTML = `<tr><td colspan="7" class="no-data-message" style="color: red;">خطأ في تحميل البيانات: ${error.message}</td></tr>`;
+                showToast(`خطأ في تحميل بيانات الطلاب: ${error.message}`, 'error');
+                console.error("Error loading teacher's students data:", error);
+            })
+            .getAllStudentsForTeacher(currentTeacherId);
+    };
+
+    /**
+     * تصفية وفرز وعرض بيانات الطلاب في جدول طلاب المعلم.
+     * @param {string} [column=null] - اسم العمود الذي سيتم الفرز على أساسه.
+     */
+    window.filterAndSortTeacherStudents = function(column = null) {
+        let filteredData = [...teacherStudentsRawData];
+
+        // 1. تصفية (Filtering)
+        const searchTerm = document.getElementById('studentsSearch').value.toLowerCase();
+        const filterStatus = document.getElementById('studentsFilterStatus').value;
+        const filterPackage = document.getElementById('studentsFilterPackage').value;
+
+        filteredData = filteredData.filter(student => {
+            const displayId = student.studentID || student.trialID || '';
+            const matchesSearch = (student.name.toLowerCase().includes(searchTerm) ||
+                                   displayId.toLowerCase().includes(searchTerm) ||
+                                   (student.phone ? student.phone.toString().includes(searchTerm) : false)
+                                   );
+            const matchesStatus = filterStatus === '' || student.basicStatus === filterStatus;
+            const matchesPackage = filterPackage === '' || student.packageName === filterPackage;
+
+            return matchesSearch && matchesStatus && matchesPackage;
+        });
+
+        // 2. فرز (Sorting)
+        if (column) {
+            if (teacherStudentsSortColumn === column) {
+                teacherStudentsSortDirection = (teacherStudentsSortDirection === 'asc') ? 'desc' : 'asc';
+            } else {
+                teacherStudentsSortColumn = column;
+                teacherStudentsSortDirection = 'asc';
+            }
+        }
+
+        if (teacherStudentsSortColumn) {
+            filteredData.sort((a, b) => {
+                let valA = a[teacherStudentsSortColumn];
+                let valB = b[teacherStudentsSortColumn];
+
+                if (valA === null || valA === undefined) valA = '';
+                if (valB === null || valB === undefined) valB = '';
+
+                if (teacherStudentsSortColumn === 'age') { // للسن
+                    valA = parseFloat(valA) || 0;
+                    valB = parseFloat(valB) || 0;
+                } else { // الفرز النصي الافتراضي
+                    valA = String(valA).toLowerCase();
+                    valB = String(valB).toLowerCase();
+                }
+
+                if (valA < valB) return teacherStudentsSortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return teacherStudentsSortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        // 3. عرض البيانات في الجدول
+        window.displayTeacherStudentsData(filteredData);
+    };
+
+    /**
+     * عرض البيانات المفلترة والمفرزة في جدول طلاب المعلم.
+     * @param {Array<Object>} students - مصفوفة الطلاب المراد عرضها.
+     */
+    window.displayTeacherStudentsData = function(students) {
+        const tableBody = document.querySelector('#teacherStudentsTable tbody');
+        tableBody.innerHTML = '';
+
+        if (students.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="7" class="no-data-message">لا توجد بيانات مطابقة لمعايير البحث/التصفية.</td></tr>';
+            return;
+        }
+
+        students.forEach(student => {
+            const row = document.createElement('tr');
+            const displayId = student.studentID || student.trialID || '';
+
+            row.innerHTML = `
+                <td>${student.name || ''}</td>
+                <td>${displayId}</td>
+                <td>${student.phone || ''}</td>
+                <td>${student.basicStatus || ''}</td>
+                <td>${student.packageName || ''}</td>
+                <td>${student.day1 ? `${student.day1} (${formatTime12Hour(student.time1)})` : ''}</td>
+                <td>${student.day2 ? `${student.day2} (${formatTime12Hour(student.time2)})` : ''}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    };
+
+    // ************************************ //
+    //          دوال خاصة بـ Manage Teacher Slots Page //
+    // ************************************ //
+
+    /**
+     * تُظهر صفحة "إدارة مواعيدي" وتُخفي الواجهة الرئيسية.
+     */
+    window.showManageTeacherSlotsPage = function() {
+        if (!currentTeacherId || !currentTeacherName) {
+            showToast("الرجاء تسجيل الدخول أولاً.", 'error');
+            return;
+        }
+
+        // إخفاء الأقسام الأخرى
+        document.getElementById('teacherInfoDisplay').classList.add('hidden');
+        document.getElementById('attendanceSection').classList.add('hidden');
+        document.getElementById('teacherStudentsPage').classList.add('hidden');
+        document.getElementById('teacherStatusMessage').classList.add('hidden');
+        document.getElementById('timeSlotSelectionModal').classList.add('hidden');
+
+        document.getElementById('manageTeacherSlotsPage').classList.remove('hidden');
+
+        document.getElementById('manageSlotsTeacherNameDisplay').textContent = currentTeacherName;
+
+        window.loadManageTeacherSlotsData();
+    };
+
+    /**
+     * تُخفي صفحة "إدارة مواعيدي" وتُظهر الواجهة الرئيسية.
+     */
+    window.hideManageTeacherSlotsPage = function() {
+        document.getElementById('manageTeacherSlotsPage').classList.add('hidden');
+        document.getElementById('teacherOptions').classList.remove('hidden');
+    };
+
+    /**
+     * تُحمل بيانات مواعيد المعلم لعرضها في جدول الإدارة.
+     */
+    window.loadManageTeacherSlotsData = function() {
+        const tableBody = document.getElementById('teacherSlotsTableBodyDisplay');
+        tableBody.innerHTML = '<tr><td colspan="3" class="no-data-message"><i class="fas fa-spinner fa-spin"></i> جارٍ تحميل المواعيد...</td></tr>';
+        document.getElementById('noManageSlotsMessageDisplay').classList.add('hidden');
+        document.getElementById('manageSlotsStatusMessageDisplay').classList.add('hidden');
+
+        google.script.run
+            .withSuccessHandler(response => {
+                if (response && response.error) {
+                    tableBody.innerHTML = `<tr><td colspan="3" class="no-data-message" style="color: red;">خطأ في تحميل المواعيد: ${response.error}</td></tr>`;
+                    showToast(`خطأ في تحميل المواعيد: ${response.error}`, 'error');
+                    console.error("Error loading manage teacher slots data:", response.error);
+                    return;
+                }
+
+                currentTeacherAllAvailableSlots = response.slots;
+
+                const slotsByDay = {
+                    'الأحد': [], 'الاثنين': [], 'الثلاثاء': [], 'الأربعاء': [],
+                    'الخميس': [], 'الجمعة': [], 'السبت': []
+                };
+                if (response.slots) {
+                    response.slots.forEach(slot => { 
+                        if (slotsByDay[slot.dayOfWeek]) {
+                            slotsByDay[slot.dayOfWeek].push(slot);
+                        }
+                    });
+                }
+
+                tableBody.innerHTML = '';
+                let hasAnyActualSlots = false;
+                const daysOrder = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                
+                daysOrder.forEach(day => {
+                    const row = document.createElement('tr');
+                    const dayCell = document.createElement('td');
+                    dayCell.textContent = day;
+                    row.appendChild(dayCell);
+
+                    const slotsCell = document.createElement('td');
+                    const sortedDaySlots = slotsByDay[day].sort((a, b) => window.getTimeInMinutes(a.timeSlotHeader) - window.getTimeInMinutes(b.timeSlotHeader));
+
+                    // هنا منطق العرض لعمود المواعيد: فقط المواعيد المتاحة
+                    const availableSlots = sortedDaySlots.filter(s => !s.isBooked && s.actualSlotValue === s.timeSlotHeader);
+                    
+                    let slotsText = '';
+                    if (availableSlots.length > 0) {
+                        slotsText = `${availableSlots.map(s => window.formatTime12Hour(s.timeSlotHeader)).join(', ')}`;
+                    }
+
+                    if (sortedDaySlots.length > 0) {
+                        hasAnyActualSlots = true;
+                    }
+
+                    if (!slotsText) {
+                         slotsText = 'لا توجد مواعيد متاحة حالياً.';
+                    }
+                    
+                    slotsCell.textContent = slotsText;
+                    row.appendChild(slotsCell);
+
+                    const actionCell = document.createElement('td');
+                    const editButton = document.createElement('button');
+                    editButton.className = 'button';
+                    editButton.style.backgroundColor = '#2980b9';
+                    editButton.style.color = 'white';
+                    editButton.innerHTML = `<i class="fas fa-edit"></i> تعديل`;
+                    editButton.onclick = () => window.openTimeSlotModal(day);
+                    actionCell.appendChild(editButton);
+                    row.appendChild(actionCell);
+                    
+                    tableBody.appendChild(row);
+                });
+
+                if (!hasAnyActualSlots) {
+                    document.getElementById('noManageSlotsMessageDisplay').classList.remove('hidden');
+                } else {
+                    document.getElementById('noManageSlotsMessageDisplay').classList.add('hidden');
+                }
+                
+                if (response.message) {
+                    document.getElementById('manageSlotsStatusMessageDisplay').textContent = response.message;
+                    document.getElementById('manageSlotsStatusMessageDisplay').classList.remove('hidden');
+                } else {
+                    document.getElementById('manageSlotsStatusMessageDisplay').classList.add('hidden');
+                }
+            })
+            .withFailureHandler(error => {
+                showToast(`خطأ في تحميل المواعيد: ${error.message}`, 'error');
+                tableBody.innerHTML = `<tr><td colspan="3" class="no-data-message" style="color: red;">خطأ في تحميل المواعيد: ${error.message}</td></tr>`;
+                console.error("Error loading manage teacher slots data:", error);
+                document.getElementById('manageSlotsStatusMessageDisplay').textContent = `خطأ غير متوقع: ${error.message}`;
+                document.getElementById('manageSlotsStatusMessageDisplay').classList.remove('hidden');
+            })
+            .getTeacherAvailableSlotsFromSupervisor(currentTeacherId);
+    };
+
+    /**
+     * تُفتح المودال المنبثق لتحديد مواعيد يوم معين.
+     * @param {string} day - اليوم المراد تعديل مواعيده.
+     */
+    window.openTimeSlotModal = function(day) {
+        console.log("openTimeSlotModal تم استدعاؤها لليوم:", day); // <--- Add this line
+        console.log("الخطوة 1: تهيئة المتغيرات الأساسية."); // <--- Add this line
+        modalSelectedDay = day;
+        document.getElementById('modalDayTitle').textContent = `تحديد مواعيد يوم ${day}`;
+        const morningGrid = document.getElementById('morningSlotsGrid');
+        const eveningGrid = document.getElementById('eveningSlotsGrid');
+        morningGrid.innerHTML = '';
+        eveningGrid.innerHTML = '';
+
+        console.log("الخطوة 2: تصفية المواعيد الموجودة لهذا اليوم."); // <--- Add this line
+        console.log("currentTeacherAllAvailableSlots:", currentTeacherAllAvailableSlots); // <--- Add this line
+        const existingSlotsForSelectedDay = currentTeacherAllAvailableSlots.filter(s => s.dayOfWeek === day);
+        console.log("existingSlotsForSelectedDay:", existingSlotsForSelectedDay); // <--- Add this line
+
+        console.log("الخطوة 3: فرز رؤوس المواعيد المحتملة."); // <--- Add this line
+        const sortedDisplayHeaders = [...possibleTimeSlots24Hour];
+        sortedDisplayHeaders.sort((a,b) => window.getTimeInMinutes(a) - window.getTimeInMinutes(b)); // Now this line should work
+        console.log("sortedDisplayHeaders:", sortedDisplayHeaders); // <--- Add this line
+
+        console.log("الخطوة 4: تهيئة المواعيد المختارة في المودال."); // <--- Add this line
+        modalSelectedSlots = existingSlotsForSelectedDay.filter(s => !s.isBooked && s.actualSlotValue === s.timeSlotHeader).map(slot => ({ ...slot, timeSlotHeader: slot.timeSlotHeader }));
+        console.log("modalSelectedSlots بعد التهيئة:", modalSelectedSlots); // <--- Add this line
+
+
+        if (sortedDisplayHeaders.length === 0) {
+            console.log("الخطوة 5: لا توجد رؤوس مواعيد لعرضها."); // <--- Add this line
+            morningGrid.innerHTML = '<p class="no-slots-message">لا توجد مواعيد متاحة في هذا اليوم.</p>';
+            eveningGrid.innerHTML = '';
+            document.getElementById('timeSlotSelectionModal').style.display = 'flex'; // Modified
+            return;
+        }
+
+        console.log("الخطوة 6: بدء حلقة إنشاء الأزرار."); // <--- Add this line
+        let hasMorningSlots = false;
+        let hasEveningSlots = false;
+
+        sortedDisplayHeaders.forEach(timeSlotHeader => {
+            console.log("الخطوة 6.1: معالجة الميعاد:", timeSlotHeader); // <--- Add this line
+            const originalSlotData = existingSlotsForSelectedDay.find(s => s.timeSlotHeader === timeSlotHeader);
+            console.log("originalSlotData:", originalSlotData); // <--- Add this line
+            const isSelected = modalSelectedSlots.some(s => s.timeSlotHeader === timeSlotHeader);
+            const isDisabled = originalSlotData && originalSlotData.isBooked;
+
+            const button = document.createElement('button');
+            button.className = `time-slot-chip ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`;
+            button.type = 'button';
+            button.onclick = () => window.toggleSlotSelection(timeSlotHeader); 
+            button.disabled = isDisabled;
+            button.setAttribute('data-time-slot-header', timeSlotHeader); 
+            
+            let buttonText = window.formatTime12Hour(timeSlotHeader);
+            if (originalSlotData && originalSlotData.isBooked) {
+                console.log("الخطوة 6.2: الموعد محجوز."); // <--- Add this line
+                if (originalSlotData.bookedBy && originalSlotData.bookedBy._id && (originalSlotData.bookedBy._id.startsWith("STD") || originalSlotData.bookedBy._id.startsWith("TRL"))) {
+                    buttonText += ` (${originalSlotData.bookedBy.name || originalSlotData.bookedBy._id})`;
+                }
+                else if (originalSlotData.bookedBy && originalSlotData.bookedBy.name) {
+                    buttonText += ` (${originalSlotData.bookedBy.name})`;
+                }
+                else {
+                     buttonText += ` (محجوز)`;
+                }
+            }
+            button.textContent = buttonText;
+
+            console.log("الخطوة 6.3: تحديد دقائق الميعاد."); // <--- Add this line
+            const startMinutes = window.getTimeInMinutes(timeSlotHeader);
+
+            console.log("الخطوة 6.4: إضافة الزر إلى الشبكة."); // <--- Add this line
+            if (startMinutes >= window.getTimeInMinutes("09:00 - 00:00") && startMinutes < window.getTimeInMinutes("15:00 - 00:00")) {
+                morningGrid.appendChild(button);
+                hasMorningSlots = true;
+            } else if (startMinutes >= window.getTimeInMinutes("15:00 - 00:00") && startMinutes <= window.getTimeInMinutes("23:30 - 00:00")) { 
+                eveningGrid.appendChild(button);
+                hasEveningSlots = true;
+            }
+        });
+        
+        console.log("الخطوة 7: التحقق من وجود مواعيد صباحية/مسائية."); // <--- Add this line
+        if (!hasMorningSlots && morningGrid.innerHTML === '') {
+            morningGrid.innerHTML = '<p class="no-slots-message">لا توجد مواعيد صباحية محددة في الأوقات الممكنة.</p>';
+        }
+        if (!hasEveningSlots && eveningGrid.innerHTML === '') {
+            eveningGrid.innerHTML = '<p class="no-slots-message">لا توجد مواعيد مسائية محددة في الأوقات الممكنة.</p>';
+        }
+
+        console.log("الخطوة 8: إظهار المودال."); // <--- Add this line
+        document.getElementById('timeSlotSelectionModal').style.display = 'flex'; // Modified
+        console.log("المودال تم إظهاره بنجاح."); // <--- Add this line
+    };
+
+    /**
+     * تُخفي المودال المنبثق لتحديد المواعيد.
+     */
+    window.closeTimeSlotModal = function() {
+        document.getElementById('timeSlotSelectionModal').style.display = 'none'; // Modified
+        modalSelectedSlots = [];
+        modalSelectedDay = '';
+    };
+
+    /**
+     * تُحدث حالة الأزرار في المودال بعد التحديد/إلغاء التحديد.
+     */
+    window.updateModalButtons = function() {
+        const allButtons = document.querySelectorAll('#morningSlotsGrid .time-slot-chip, #eveningSlotsGrid .time-slot-chip');
+        allButtons.forEach(button => {
+            if (button.disabled) return;
+
+            const timeSlotHeader = button.getAttribute('data-time-slot-header');
+            const isSelected = modalSelectedSlots.some(s => s.timeSlotHeader === timeSlotHeader);
+            
+            button.classList.toggle('selected', isSelected);
+            button.classList.toggle('disabled', false);
+
+            let buttonText = window.formatTime12Hour(timeSlotHeader);
+            const originalSlotData = currentTeacherAllAvailableSlots.find(s => s.dayOfWeek === modalSelectedDay && s.timeSlotHeader === timeSlotHeader);
+
+            if (originalSlotData && originalSlotData.isBooked) {
+                if (originalSlotData.bookedBy && originalSlotData.bookedBy._id && (originalSlotData.bookedBy._id.startsWith("STD") || originalSlotData.bookedBy._id.startsWith("TRL"))) {
+                    buttonText += ` (${originalSlotData.bookedBy.name || originalSlotData.bookedBy._id})`;
+                } else if (originalSlotData.bookedBy && originalSlotData.bookedBy.name) {
+                    buttonText += ` (${originalSlotData.bookedBy.name})`;
+                } else {
+                    buttonText += ` (محجوز)`;
+                }
+                button.classList.add('disabled');
+            }
+            button.textContent = buttonText;
+        });
+    };
+
+    /**
+     * تُبدل حالة تحديد موعد في المودال (متاح/غير متاح).
+     * @param {string} timeSlotHeader - رأس الميعاد.
+     */
+    window.toggleSlotSelection = function(timeSlotHeader) {
+        const originalSlotData = currentTeacherAllAvailableSlots.find(
+            s => s.dayOfWeek === modalSelectedDay && s.timeSlotHeader === timeSlotHeader
+        );
+
+        if (originalSlotData && originalSlotData.isBooked) {
+            showToast('لا يمكن إلغاء تحديد هذا الموعد المحجوز من قبل طالب أو نص مخصص.', 'info');
+            return;
+        }
+
+        const index = modalSelectedSlots.findIndex(s => s.timeSlotHeader === timeSlotHeader);
+        if (index > -1) {
+            modalSelectedSlots.splice(index, 1);
+        } else {
+            modalSelectedSlots.push({ 
+                dayOfWeek: modalSelectedDay, 
+                timeSlotHeader: timeSlotHeader
+            });
+        }
+        window.updateModalButtons();
+    };
+
+    /**
+     * تُرسل المواعيد المختارة من المودال لحفظها في شيت المشرف.
+     */
+    window.saveSelectedSlots = function() {
+        const teacherId = currentTeacherId;
+        const day = modalSelectedDay;
+        
+        const newSelectedSlotsToSend = modalSelectedSlots.map(slot => ({
+            timeSlotHeader: slot.timeSlotHeader
+        }));
+
+        if (!teacherId || !day) {
+            showToast('خطأ: لم يتم تحديد المعلم أو اليوم.', 'error');
+            return;
+        }
+        
+        const saveButton = document.querySelector('#timeSlotSelectionModal .save-button');
+        const originalSaveText = saveButton.innerHTML;
+        saveButton.disabled = true;
+        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جارٍ الحفظ...';
+
+        google.script.run
+            .withSuccessHandler(response => {
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalSaveText;
+                if (response && response.success) {
+                    showToast(response.success, 'success');
+                    window.closeTimeSlotModal();
+                    window.loadManageTeacherSlotsData();
+                } else if (response && response.error) {
+                    showToast(response.error, 'error');
+                }
+            })
+            .withFailureHandler(error => {
+                showToast('حدث خطأ أثناء حفظ المواعيد: ' + error.message, 'error');
+                console.error("Error saving selected slots:", error);
+            })
+            .updateTeacherSlotsInSupervisor(teacherId, day, newSelectedSlotsToSend);
+    };
+
+
+    // ************************************ //
+    //          دوال خاصة بصفحة ملخص الشهر الحالي (Teacher Monthly Summary Page) //
+    // ************************************ //
+
+    /**
+     * تُظهر صفحة "ملخص الشهر الحالي" وتُخفي الواجهة الرئيسية.
+     */
+    window.showTeacherMonthlySummaryPage = function() {
+        if (!currentTeacherId || !currentTeacherName) {
+            showToast("الرجاء تسجيل الدخول أولاً.", 'error');
+            return;
+        }
+
+        // إخفاء الأقسام الأخرى
+        document.getElementById('teacherInfoDisplay').classList.add('hidden');
+        document.getElementById('attendanceSection').classList.add('hidden');
+        document.getElementById('teacherStudentsPage').classList.add('hidden');
+        document.getElementById('manageTeacherSlotsPage').classList.add('hidden');
+        document.getElementById('timeSlotSelectionModal').classList.add('hidden');
+        document.getElementById('teacherStatusMessage').classList.add('hidden');
+
+        document.getElementById('teacherMonthlySummaryPage').classList.remove('hidden');
+
+        document.getElementById('summaryTeacherName').textContent = currentTeacherName;
+        
+        document.getElementById('summaryCurrentMonth').textContent = currentMonthYearDisplay;
+
+        window.loadTeacherMonthlySummaryData(); // تحميل بيانات الملخص
+    };
+
+    /**
+     * تُخفي صفحة "ملخص الشهر الحالي" وتُظهر الواجهة الرئيسية.
+     */
+    window.hideTeacherMonthlySummaryPage = function() {
+        document.getElementById('teacherMonthlySummaryPage').classList.add('hidden');
+        document.getElementById('teacherOptions').classList.remove('hidden');
+    };
+
+    /**
+     * جلب وحساب بيانات ملخص الشهر الحالي للمعلم.
+     */
+    window.loadTeacherMonthlySummaryData = function() {
+        // إعادة تعيين القيم إلى 0 أو نص مؤقت أثناء التحميل
+        document.getElementById('summaryCompletedClasses').textContent = '...';
+        document.getElementById('summaryTotalAbsences').textContent = '...'; // <--- تعديل
+        document.getElementById('summaryPostponedClasses').textContent = '...';
+        document.getElementById('summaryTotalWorkingMinutes').textContent = '...';
+        document.getElementById('summaryTotalWorkingHours').textContent = '...';
+        document.getElementById('summaryTotalRegisteredStudents').textContent = '...';
+        document.getElementById('summaryTotalBookedSlots').textContent = '...';
+        document.getElementById('summaryTotalAvailableSlots').textContent = '...';
+
+
+        google.script.run
+            .withSuccessHandler(response => {
+                if (response && response.error) {
+                    showToast(`خطأ في تحميل الملخص: ${response.error}`, 'error');
+                    document.getElementById('summaryCompletedClasses').textContent = 'خطأ';
+                    document.getElementById('summaryTotalAbsences').textContent = 'خطأ'; // <--- تعديل
+                    document.getElementById('summaryPostponedClasses').textContent = 'خطأ';
+                    document.getElementById('summaryTotalWorkingMinutes').textContent = 'خطأ';
+                    document.getElementById('summaryTotalWorkingHours').textContent = 'خطأ';
+                    document.getElementById('summaryTotalRegisteredStudents').textContent = 'خطأ';
+                    document.getElementById('summaryTotalBookedSlots').textContent = 'خطأ';
+                    document.getElementById('summaryTotalAvailableSlots').textContent = 'خطأ';
+                    return;
+                }
+
+                // تحديث الـ DOM بالبيانات المستلمة
+                document.getElementById('summaryCompletedClasses').textContent = response.completedClasses || 0;
+                document.getElementById('summaryTotalAbsences').textContent = response.totalAbsences || 0; // <--- تعديل
+                document.getElementById('summaryPostponedClasses').textContent = response.postponedClasses || 0;
+                document.getElementById('summaryTotalWorkingMinutes').textContent = response.totalWorkingMinutes || 0;
+                document.getElementById('summaryTotalWorkingHours').textContent = (response.totalWorkingMinutes / 60).toFixed(2) || '0.00';
+                document.getElementById('summaryTotalRegisteredStudents').textContent = response.totalRegisteredStudents || 0;
+                document.getElementById('summaryTotalBookedSlots').textContent = response.totalBookedSlots || 0;
+                document.getElementById('summaryTotalAvailableSlots').textContent = response.totalAvailableSlots || 0;
+
+                showToast("تم تحديث ملخص الشهر.", 'success');
+            })
+            .withFailureHandler(error => {
+                showToast(`خطأ في تحميل الملخص: ${error.message}`, 'error');
+                console.error("Error loading teacher monthly summary:", error);
+                document.getElementById('summaryCompletedClasses').textContent = 'خطأ';
+                document.getElementById('summaryTotalAbsences').textContent = 'خطأ'; // <--- تعديل
+                document.getElementById('summaryPostponedClasses').textContent = 'خطأ';
+                document.getElementById('summaryTotalWorkingMinutes').textContent = 'خطأ';
+                document.getElementById('summaryTotalWorkingHours').textContent = 'خطأ';
+                document.getElementById('summaryTotalRegisteredStudents').textContent = 'خطأ';
+                document.getElementById('summaryTotalBookedSlots').textContent = 'خطأ';
+                document.getElementById('summaryTotalAvailableSlots').textContent = 'خطأ';
+            })
+            .getTeacherMonthlySummary(currentTeacherId);
+    };
+
+    
+    // عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+      const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+      const d = new Date();
+      currentDay = days[d.getDay()];
+      document.getElementById('currentDayNameDisplay').textContent = currentDay;
+
+      // حساب الشهر والسنة للعرض وتخزينه في المتغير العالمي الجديد
+      const monthNames = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+      currentMonthYearDisplay = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      document.getElementById('summaryCurrentMonth').textContent = currentMonthYearDisplay; // تحديث هذا العنصر عند التحميل
+    });
+  </script>
+</body>
+</html>
