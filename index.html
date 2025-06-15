@@ -1538,26 +1538,90 @@
 
     /**
      * دالة مساعدة لتحويل سلسلة الوقت (أو رأس الميعاد) إلى دقائق لغرض الفرز.
-     * تستخدم convertTo24HourFormat لضمان تحويل أي تنسيق.
-     * @param {string} timeString - سلسلة الوقت.
+     * ستتعامل مع سلاسل HH:mm أو كائنات Date مباشرة.
+     * @param {any} timeValue - سلسلة الوقت أو كائن Date.
      * @returns {number} الوقت بالدقائق من منتصف الليل.
      */
-    function getTimeInMinutes(timeString) {
-        if (typeof timeString !== 'string' || timeString.trim() === '') return 0;
-        
-        const time24hrPart = convertTo24HourFormat(timeString);
-        
-        const [hours, minutes] = time24hrPart.split(':').map(Number);
-        if (isNaN(hours) || isNaN(minutes)) return 0;
+    window.getTimeInMinutes = function(timeValue) { // <--- التأكيد على window.
+        // 1. التحقق أولاً من أن القيمة ليست فارغة أو غير صالحة
+        if (timeValue === null || timeValue === undefined || timeValue === '') return 0;
+
+        let hours, minutes;
+
+        // 2. إذا كانت القيمة كائن Date (من الخلايا المنسقة كـ "وقت")
+        if (timeValue instanceof Date) {
+            // التحقق من صحة كائن Date وتجاهل تواريخ الصفر
+            const minValidDate = new Date('1900-01-01T00:00:00.000Z');
+            if (isNaN(timeValue.getTime()) || timeValue.getTime() < minValidDate.getTime()) {
+                return 0; // تاريخ غير صالح أو تاريخ صفر، يعامل كـ 00:00 (0 دقيقة)
+            }
+            hours = timeValue.getHours();
+            minutes = timeValue.getMinutes();
+        } else {
+            // 3. إذا لم يكن كائن Date، فافترض أنه سلسلة نصية وحاول تحليلها
+            let timeString = String(timeValue).trim();
+
+            // التعامل مع "HH:MM - HH:MM" (رؤوس الأعمدة)
+            const parts = timeString.split(' - ');
+            if (parts.length > 1 && parts[0].includes(':')) {
+                timeString = parts[0]; // نأخذ جزء البداية فقط (HH:MM)
+            }
+
+            // التعامل مع "p X" (مسائي)
+            if (timeString.toLowerCase().startsWith('p ')) {
+                const hourPart = parseInt(timeString.substring(2));
+                if (!isNaN(hourPart) && hourPart >= 1 && hourPart <= 12) {
+                    hours = (hourPart === 12) ? 12 : hourPart + 12;
+                    minutes = 0;
+                } else return 0;
+            }
+            // التعامل مع "ص" (صباحي)
+            else if (timeString.toLowerCase().endsWith('ص')) {
+                const hourPart = parseInt(timeString.replace('ص', ''));
+                if (!isNaN(hourPart) && hourPart >= 1 && hourPart <= 12) {
+                    hours = (hourPart === 12) ? 0 : hourPart;
+                    minutes = 0;
+                } else return 0;
+            }
+            // التعامل مع "م" (مسائي)
+            else if (timeString.toLowerCase().endsWith('م')) {
+                const hourPart = parseInt(timeString.replace('م', ''));
+                if (!isNaN(hourPart) && hourPart >= 1 && hourPart <= 12) {
+                    hours = (hourPart === 12) ? 12 : hourPart + 12;
+                    minutes = 0;
+                } else return 0;
+            }
+            // التعامل مع التنسيق HH:MM (مثل 09:00) أو H:M (مثل 8:30)
+            else if (timeString.includes(':')) {
+                const timeParts = timeString.split(':').map(Number);
+                if (timeParts.length === 2 && !isNaN(timeParts[0]) && !isNaN(timeParts[1])) {
+                    hours = timeParts[0];
+                    minutes = timeParts[1];
+                } else return 0;
+            }
+            // لو الوقت رقم فقط (مثل 9 أو 10)
+            else {
+                const hourPart = parseInt(timeString);
+                if (!isNaN(hourPart) && hourPart >= 0 && hourPart <= 23) {
+                    hours = hourPart;
+                    minutes = 0;
+                } else return 0;
+            }
+        }
+
+        if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+            return 0;
+        }
         return hours * 60 + minutes;
-    }
+    };
+
 
     /**
      * دالة مساعدة لتحويل تنسيق 24 ساعة (HH:mm) أو (HH:mm - HH:mm) إلى 12 ساعة (H:mm ص/م).
      * @param {string} timeString - الوقت بتنسيق 24 ساعة (مثلاً "13:30" أو "09:00 - 09:30").
      * @returns {string} الوقت بتنسيق 12 ساعة (مثلاً "1:30 م").
      */
-    function formatTime12Hour(timeString) {
+    window.formatTime12Hour = function(timeString) { // <--- التأكيد على window.
         if (typeof timeString !== 'string' || timeString.trim() === '') return 'وقت غير صالح';
 
         // إذا كان تنسيق الوقت هو "HH:MM - HH:MM"، نأخذ الجزء الأول فقط
@@ -1572,7 +1636,7 @@
         const formattedHours = hours % 12 || 12; // 00:00 (منتصف الليل) تكون 12 ص، 12:00 (الظهر) تكون 12 م
 
         return `${formattedHours}:${minutes < 10 ? '0' : ''}${minutes} ${ampm}`;
-    }
+    };
 
 
     // ************************************ //
@@ -1997,12 +2061,23 @@
                     valA = parseFloat(valA) || 0;
                     valB = parseFloat(valB) || 0;
                 } else if (sortColumn === 'registrationDate' || sortColumn === 'subscriptionStartDate' || sortColumn === 'subscriptionEndDate' || sortColumn === 'lastRenewalDate') { // فرز التواريخ
-                    valA = valA ? new Date(valA) : new Date(0); // تاريخ افتراضي لو فارغ
+                    valA = valA ? new Date(valA) : new Date(0);
                     valB = valB ? new Date(valB) : new Date(0);
                 } else if (sortColumn === 'phone' || sortColumn === 'studentPhone' || sortColumn === 'studentID') {
                     valA = String(valA);
                     valB = String(valB);
-                } else { // فرز نصي افتراضي
+                }
+                // فرز المواعيد باستخدام getTimeInMinutes
+                else if (sortColumn === 'allBookedScheduleSlots') {
+                    // إذا كان لدينا أكثر من موعد، نستخدم أول ميعاد للفرز أو نجمع الدقائق
+                    // لغرض الفرز البسيط، يمكننا استخدام أول ميعاد
+                    const timeA = (Array.isArray(valA) && valA.length > 0) ? window.getTimeInMinutes(valA[0].time) : 0; // <--- استخدام window.getTimeInMinutes
+                    const timeB = (Array.isArray(valB) && valB.length > 0) ? window.getTimeInMinutes(valB[0].time) : 0; // <--- استخدام window.getTimeInMinutes
+                    if (timeA < timeB) return sortDirection === 'asc' ? -1 : 1;
+                    if (timeA > timeB) return sortDirection === 'asc' ? 1 : -1;
+                    return 0;
+                }
+                else { // فرز نصي افتراضي
                     valA = String(valA).toLowerCase();
                     valB = String(valB).toLowerCase();
                 }
