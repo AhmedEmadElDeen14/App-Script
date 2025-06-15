@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نظام إدارة أكاديمية غيث</title>
+  <title>نظام إدارة أكاديمية رفاق</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   
@@ -453,16 +453,18 @@
     <i class="fas fa-home"></i>
   </div>
   <div id="main-page" class="page-section active">
-    <h1>أكاديمية غيث</h1>
+    <h1>أكاديمية رفاق</h1>
     <div class="main-button-grid">
       <button class="main-button dashboard" onclick="showPage('dashboard-page', loadDashboardStats)"><i class="fas fa-chart-line"></i> لوحة التحكم</button>
       <button class="main-button register" onclick="showPage('form-page', loadFormDependencies)"><i class="fas fa-user-plus"></i> تسجيل طالب جديد</button>
       <button class="main-button trial-register" onclick="showPage('trial-form-page', loadTrialFormDependencies)"><i class="fas fa-user-friends"></i> تسجيل طالب تجريبي</button>
       <button class="main-button edit" onclick="showPage('edit-student-page', loadEditStudentDependencies)"><i class="fas fa-user-edit"></i> تعديل بيانات طالب</button>
+      <button class="main-button teacher" onclick="showPage('teacher-schedule-page', loadTeacherScheduleDependencies)"><i class="fas fa-chalkboard-teacher"></i> تسجيل حضور المعلمين</button>
       <button class="main-button all-students" onclick="showPage('all-students-page', loadAllStudentsDependencies)"><i class="fas fa-users"></i> كل الطلاب</button>
       <button class="main-button archive" onclick="showPage('archive-page', loadArchivedStudentsDependencies)"><i class="fas fa-archive"></i> أرشيف الطلاب</button>
       <button class="main-button manage-slots" onclick="showPage('manage-slots-page', loadManageSlotsDependencies)"><i class="fas fa-clock"></i> إدارة مواعيد المعلمين</button>
       <button class="main-button convert-trial" onclick="showPage('convert-trial-page', loadConvertTrialDependencies)"><i class="fas fa-sync-alt"></i> تحويل طالب تجريبي</button>
+      <button class="main-button manage-renewal" onclick="showPage('renewal-attendance-page', loadRenewalAttendanceDependencies)"><i class="fas fa-calendar-check"></i> متابعة التجديدات والحضور</button>
       <button class="main-button renewal-alert" onclick="showPage('renewal-needed-students-page', loadRenewalNeededStudentsDependencies)"><i class="fas fa-exclamation-triangle"></i> الطلاب الذين يحتاجون للتجديد</button>
       <button class="main-button payment-record" onclick="showPage('payment-records-page', loadPaymentRecordsDependencies)"><i class="fas fa-money-bill-wave"></i> تسجيل الدفعات المالية</button>
 
@@ -614,122 +616,50 @@
 
       <div class="row">
         <div class="column column-50">
+          <label for="regDay1">اليوم الأول:</label>
+          <select id="regDay1" onchange="updateRegTimes('regDay1', 'regTime1')" required>
+            <option value="" disabled selected>اختر يومًا</option>
+          </select>
+        </div>
+        <div class="column column-50">
+          <label for="regTime1">الميعاد الأول:</label>
+          <select id="regTime1" required>
+            <option value="" disabled selected>اختر ميعادًا</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="column column-50">
+          <label for="regDay2">اليوم الثاني:</label>
+          <select id="regDay2" onchange="updateRegTimes('regDay2', 'regTime2')">
+            <option value="" disabled selected>اختر يومًا (اختياري)</option>
+          </select>
+        </div>
+        <div class="column column-50">
+          <label for="regTime2">الميعاد الثاني:</label>
+          <select id="regTime2">
+            <option value="" disabled selected>اختر ميعادًا (اختياري)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="column column-50">
           <label for="regPaymentStatus">حالة الدفع:</label>
-          <select id="regPaymentStatus" onchange="updateScheduleSlotsDisplay()" required>
+          <select id="regPaymentStatus" required>
             <option value="" disabled selected>اختر حالة الدفع</option>
           </select>
         </div>
         <div class="column column-50">
           <label for="regSubscriptionPackage">باقة الاشتراك:</label>
-          <select id="regSubscriptionPackage" onchange="updateScheduleSlotsDisplay()" required> <option value="" disabled selected>اختر باقة</option>
+          <select id="regSubscriptionPackage" required>
+            <option value="" disabled selected>اختر باقة</option>
           </select>
         </div>
       </div>
 
-      <div id="scheduleSlotsContainer">
-        <div class="schedule-slot-group" id="scheduleSlot1">
-          <div class="row">
-            <div class="column column-50">
-              <label for="regDay1">اليوم الأول:</label>
-              <select id="regDay1" onchange="updateRegTimes('regDay1', 'regTime1')" required>
-                <option value="" disabled selected>اختر يومًا</option>
-              </select>
-            </div>
-            <div class="column column-50">
-              <label for="regTime1">الميعاد الأول:</label>
-              <select id="regTime1" required>
-                <option value="" disabled selected>اختر ميعادًا</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="schedule-slot-group" id="scheduleSlot2">
-          <div class="row">
-            <div class="column column-50">
-              <label for="regDay2">اليوم الثاني:</label>
-              <select id="regDay2" onchange="updateRegTimes('regDay2', 'regTime2')">
-                <option value="" disabled selected>اختر يومًا (اختياري)</option>
-              </select>
-            </div>
-            <div class="column column-50">
-              <label for="regTime2">الميعاد الثاني:</label>
-              <select id="regTime2">
-                <option value="" disabled selected>اختر ميعادًا (اختياري)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="schedule-slot-group hidden" id="scheduleSlot3">
-          <div class="row">
-            <div class="column column-50">
-              <label for="regDay3">اليوم الثالث:</label>
-              <select id="regDay3" onchange="updateRegTimes('regDay3', 'regTime3')">
-                <option value="" disabled selected>اختر يومًا (اختياري)</option>
-              </select>
-            </div>
-            <div class="column column-50">
-              <label for="regTime3">الميعاد الثالث:</label>
-              <select id="regTime3">
-                <option value="" disabled selected>اختر ميعادًا (اختياري)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="schedule-slot-group hidden" id="scheduleSlot4">
-          <div class="row">
-            <div class="column column-50">
-              <label for="regDay4">اليوم الرابع:</label>
-              <select id="regDay4" onchange="updateRegTimes('regDay4', 'regTime4')">
-                <option value="" disabled selected>اختر يومًا (اختياري)</option>
-              </select>
-            </div>
-            <div class="column column-50">
-              <label for="regTime4">الميعاد الرابع:</label>
-              <select id="regTime4">
-                <option value="" disabled selected>اختر ميعادًا (اختياري)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="schedule-slot-group hidden" id="scheduleSlot5">
-          <div class="row">
-            <div class="column column-50">
-              <label for="regDay5">اليوم الخامس:</label>
-              <select id="regDay5" onchange="updateRegTimes('regDay5', 'regTime5')">
-                <option value="" disabled selected>اختر يومًا (اختياري)</option>
-              </select>
-            </div>
-            <div class="column column-50">
-              <label for="regTime5">الميعاد الخامس:</label>
-              <select id="regTime5">
-                <option value="" disabled selected>اختر ميعادًا (اختياري)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="schedule-slot-group hidden" id="scheduleSlot6">
-          <div class="row">
-            <div class="column column-50">
-              <label for="regDay6">اليوم السادس:</label>
-              <select id="regDay6" onchange="updateRegTimes('regDay6', 'regTime6')">
-                <option value="" disabled selected>اختر يومًا (اختياري)</option>
-              </select>
-            </div>
-            <div class="column column-50">
-              <label for="regTime6">الميعاد السادس:</label>
-              <select id="regTime6">
-                <option value="" disabled selected>اختر ميعادًا (اختياري)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-      </div> <div class="button-group">
+      <div class="button-group">
         <button type="button" class="button button-primary" onclick="submitData()"><i class="fas fa-save"></i> تسجيل البيانات</button>
         <button type="button" class="button back-button" onclick="showPage('main-page')"><i class="fas fa-arrow-right"></i> العودة للصفحة الرئيسية</button>
       </div>
@@ -833,145 +763,48 @@
         </div>
       </div>
 
-      <div id="editScheduleSlotsContainer">
-        <div class="schedule-slot-group" id="editScheduleSlot1">
-          <div class="row">
-            <div class="column column-50">
-              <label>اليوم الأول (الحالي):</label>
-              <span id="currentDay1">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editDay1">اليوم الأول (الجديد):</label>
-              <select id="editDay1" onchange="updateEditTimes('editDay1', 'editTime1')"></select>
-            </div>
-          </div>
-          <div class="row">
-            <div class="column column-50">
-              <label>الميعاد الأول (الحالي):</label>
-              <span id="currentTime1">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editTime1">الميعاد الأول (الجديد):</label>
-              <select id="editTime1"></select>
-            </div>
-          </div>
+      <div class="row">
+        <div class="column column-50">
+          <label>اليوم الأول (الحالي):</label>
+          <span id="currentDay1">-</span>
         </div>
-
-        <div class="schedule-slot-group" id="editScheduleSlot2">
-          <div class="row">
-            <div class="column column-50">
-              <label>اليوم الثاني (الحالي):</label>
-              <span id="currentDay2">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editDay2">اليوم الثاني (الجديد):</label>
-              <select id="editDay2" onchange="updateEditTimes('editDay2', 'editTime2')"></select>
-            </div>
-          </div>
-          <div class="row">
-            <div class="column column-50">
-              <label>الميعاد الثاني (الحالي):</label>
-              <span id="currentTime2">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editTime2">الميعاد الثاني (الجديد):</label>
-              <select id="editTime2"></select>
-            </div>
-          </div>
+        <div class="column column-50">
+          <label for="editDay1">اليوم الأول (الجديد):</label>
+          <select id="editDay1" onchange="updateEditTimes('editDay1', 'editTime1')"></select>
         </div>
+      </div>
 
-        <div class="schedule-slot-group hidden" id="editScheduleSlot3">
-          <div class="row">
-            <div class="column column-50">
-              <label>اليوم الثالث (الحالي):</label>
-              <span id="currentDay3">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editDay3">اليوم الثالث (الجديد):</label>
-              <select id="editDay3" onchange="updateEditTimes('editDay3', 'editTime3')"></select>
-            </div>
-          </div>
-          <div class="row">
-            <div class="column column-50">
-              <label>الميعاد الثالث (الحالي):</label>
-              <span id="currentTime3">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editTime3">الميعاد الثالث (الجديد):</label>
-              <select id="editTime3"></select>
-            </div>
-          </div>
+      <div class="row">
+        <div class="column column-50">
+          <label>الميعاد الأول (الحالي):</label>
+          <span id="currentTime1">-</span>
         </div>
-
-        <div class="schedule-slot-group hidden" id="editScheduleSlot4">
-          <div class="row">
-            <div class="column column-50">
-              <label>اليوم الرابع (الحالي):</label>
-              <span id="currentDay4">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editDay4">اليوم الرابع (الجديد):</label>
-              <select id="editDay4" onchange="updateEditTimes('editDay4', 'editTime4')"></select>
-            </div>
-          </div>
-          <div class="row">
-            <div class="column column-50">
-              <label>الميعاد الرابع (الحالي):</label>
-              <span id="currentTime4">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editTime4">الميعاد الرابع (الجديد):</label>
-              <select id="editTime4"></select>
-            </div>
-          </div>
+        <div class="column column-50">
+          <label for="editTime1">الميعاد الأول (الجديد):</label>
+          <select id="editTime1"></select>
         </div>
+      </div>
 
-        <div class="schedule-slot-group hidden" id="editScheduleSlot5">
-          <div class="row">
-            <div class="column column-50">
-              <label>اليوم الخامس (الحالي):</label>
-              <span id="currentDay5">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editDay5">اليوم الخامس (الجديد):</label>
-              <select id="editDay5" onchange="updateEditTimes('editDay5', 'editTime5')"></select>
-            </div>
-          </div>
-          <div class="row">
-            <div class="column column-50">
-              <label>الميعاد الخامس (الحالي):</label>
-              <span id="currentTime5">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editTime5">الميعاد الخامس (الجديد):</label>
-              <select id="editTime5"></select>
-            </div>
-          </div>
+      <div class="row">
+        <div class="column column-50">
+          <label>اليوم الثاني (الحالي):</label>
+          <span id="currentDay2">-</span>
         </div>
-
-        <div class="schedule-slot-group hidden" id="editScheduleSlot6">
-          <div class="row">
-            <div class="column column-50">
-              <label>اليوم السادس (الحالي):</label>
-              <span id="currentDay6">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editDay6">اليوم السادس (الجديد):</label>
-              <select id="editDay6" onchange="updateEditTimes('editDay6', 'editTime6')"></select>
-            </div>
-          </div>
-          <div class="row">
-            <div class="column column-50">
-              <label>الميعاد السادس (الحالي):</label>
-              <span id="currentTime6">-</span>
-            </div>
-            <div class="column column-50">
-              <label for="editTime6">الميعاد السادس (الجديد):</label>
-              <select id="editTime6"></select>
-            </div>
-          </div>
+        <div class="column column-50">
+          <label for="editDay2">اليوم الثاني (الجديد):</label>
+          <select id="editDay2" onchange="updateEditTimes('editDay2', 'editTime2')"></select>
         </div>
+      </div>
 
+      <div class="row">
+        <div class="column column-50">
+          <label>الميعاد الثاني (الحالي):</label>
+          <span id="currentTime2">-</span>
+        </div>
+        <div class="column column-50">
+          <label for="editTime2">الميعاد الثاني (الجديد):</label>
+          <select id="editTime2"></select>
+        </div>
       </div>
 
       <div class="row">
@@ -1039,17 +872,15 @@
           <th onclick="filterAndSortStudents('name')">الاسم <i class="fas fa-sort"></i></th>
           <th onclick="filterAndSortStudents('studentID')">Student ID <i class="fas fa-sort"></i></th>
           <th onclick="filterAndSortStudents('phone')">رقم الهاتف <i class="fas fa-sort"></i></th>
-          <th onclick="filterAndSortStudents('teacherName')">المعلم <i class="fas fa-sort"></i></th>
-          <th onclick="filterAndSortStudents('packageName')">الباقة <i class="fas fa-sort"></i></th>
-          <th onclick="filterAndSortStudents('attendedSessions')">الحصص الحاضرة <i class="fas fa-sort"></i></th>
+          <th onclick="filterAndSortStudents('teacherName')">المعلم <i class="fas fa-sort"></i></th> <th onclick="filterAndSortStudents('packageName')">الباقة <i class="fas fa-sort"></i></th> <th onclick="filterAndSortStudents('attendedSessions')">الحصص الحاضرة <i class="fas fa-sort"></i></th>
           <th onclick="filterAndSortStudents('remainingSessions')">الحصص المتبقية <i class="fas fa-sort"></i></th>
           <th onclick="filterAndSortStudents('renewalStatus')">حالة التجديد <i class="fas fa-sort"></i></th>
           <th onclick="filterAndSortStudents('registrationDate')">تاريخ التسجيل <i class="fas fa-sort"></i></th>
-          <th onclick="filterAndSortStudents('allBookedScheduleSlots')">المواعيد <i class="fas fa-sort"></i></th> <th>الإجراءات</th>
+          <th onclick="filterAndSortStudents('day1')">الميعاد الأول <i class="fas fa-sort"></i></th> <th onclick="filterAndSortStudents('day2')">الميعاد الثاني <i class="fas fa-sort"></i></th> <th>الإجراءات</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td colspan="11" class="no-data-message">جارٍ تحميل بيانات الطلاب...</td></tr> </tbody>
+        <tr><td colspan="12" class="no-data-message">جارٍ تحميل بيانات الطلاب...</td></tr> </tbody>
     </table>
     <div class="button-container">
         <button class="button back-button" onclick="showPage('main-page')"><i class="fas fa-arrow-right"></i> العودة للصفحة الرئيسية</button>
@@ -1104,6 +935,41 @@
       <div class="button-container">
           <button class="button back-button" onclick="showPage('main-page')"><i class="fas fa-arrow-right"></i> العودة للصفحة الرئيسية</button>
       </div>
+  </div>
+
+  <div id="teacher-schedule-page" class="page-section">
+    <h2><i class="fas fa-chalkboard-teacher"></i> تسجيل حضور المعلمين</h2>
+
+    <div class="form-group">
+      <input type="tel" id="teacherPhone" placeholder="أدخل رقم هاتف المعلم">
+      <button onclick="loadTeacherSchedule()"><i class="fas fa-search"></i> بحث</button>
+    </div>
+
+    <div id="teacherInfo" class="hidden">
+      <h2 id="currentTeacherNameDisplay"></h2>
+      <p>جدول الطلاب لهذا اليوم: <span id="currentDayNameDisplay"></span></p>
+    </div>
+
+    <div id="attendanceSection" class="hidden">
+      <h3>الطلاب المسجلون لهذا اليوم:</h3>
+      <table id="attendanceTable">
+        <thead>
+          <tr>
+            <th>اسم الطالب</th>
+            <th>معرف الطالب (ID)</th>
+            <th>الميعاد</th>
+            <th>الإجراء</th>
+          </tr>
+        </thead>
+        <tbody>
+          </tbody>
+      </table>
+    </div>
+    <p id="teacherStatusMessage" class="status-message hidden"></p>
+
+    <div class="back-button-container">
+      <button class="button back-button" onclick="showPage('main-page')"><i class="fas fa-arrow-right"></i> العودة للصفحة الرئيسية</button>
+    </div>
   </div>
 
   <div id="manage-slots-page" class="page-section">
@@ -1202,6 +1068,69 @@
     </div>
     <p id="convertTrialStatusMessage" class="status-message hidden"></p>
 </div>
+
+<div id="renewal-attendance-page" class="page-section">
+    <h1><i class="fas fa-calendar-check"></i> متابعة التجديدات والحضور</h1>
+    <div class="filters-and-search">
+      <div class="column">
+        <label for="renewalAttendanceSearch">بحث (الاسم، ID، الهاتف):</label>
+        <input type="text" id="renewalAttendanceSearch" placeholder="ابحث هنا..." onkeyup="filterAndSortRenewalAttendance()">
+      </div>
+      <div class="column">
+        <label for="filterRenewalStatusRA">حالة التجديد:</label>
+        <select id="filterRenewalStatusRA" onchange="filterAndSortRenewalAttendance()">
+          <option value="">كل الحالات</option>
+          <option value="تم التجديد">تم التجديد</option>
+          <option value="يحتاج للتجديد">يحتاج للتجديد</option>
+          <option value="انتهت مدة الاشتراك">انتهت مدة الاشتراك</option>
+          <option value="تجاوز الحد">تجاوز الحد</option>
+          <option value="تجريبي">تجريبي</option>
+          <option value="لم يشترك">لم يشترك</option>
+        </select>
+      </div>
+      <div class="column">
+        <label for="filterTeacherRA">المعلم:</label>
+        <select id="filterTeacherRA" onchange="filterAndSortRenewalAttendance()">
+          <option value="">كل المعلمين</option>
+          </select>
+      </div>
+      <div class="column">
+        <label for="filterPackageRA">الباقة:</label>
+        <select id="filterPackageRA" onchange="filterAndSortRenewalAttendance()">
+          <option value="">كل الباقات</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="button-container" style="justify-content: flex-start; margin-bottom: 20px;">
+        <button class="button refresh-button" onclick="loadRenewalAttendanceData()"><i class="fas fa-sync-alt"></i> تحديث البيانات</button>
+    </div>
+
+    <table id="renewalAttendanceTable">
+      <thead>
+        <tr>
+          <th onclick="filterAndSortRenewalAttendance('name')">الاسم <i class="fas fa-sort"></i></th>
+          <th onclick="filterAndSortRenewalAttendance('studentID')">Student ID <i class="fas fa-sort"></i></th>
+          <th onclick="filterAndSortRenewalAttendance('phone')">رقم الهاتف <i class="fas fa-sort"></i></th>
+          <th onclick="filterAndSortRenewalAttendance('teacherName')">المعلم <i class="fas fa-sort"></i></th>
+          <th onclick="filterAndSortRenewalAttendance('packageName')">الباقة <i class="fas fa-sort"></i></th>
+          <th onclick="filterAndSortRenewalAttendance('renewalStatus')">حالة التجديد <i class="fas fa-sort"></i></th>
+          <th onclick="filterAndSortRenewalAttendance('remainingSessions')">الحصص المتبقية <i class="fas fa-sort"></i></th>
+          <th onclick="filterAndSortRenewalAttendance('subscriptionEndDate')">تاريخ نهاية الاشتراك <i class="fas fa-sort"></i></th>
+          <th onclick="filterAndSortRenewalAttendance('lastRenewalDate')">آخر تجديد <i class="fas fa-sort"></i></th>
+          <th onclick="filterAndSortRenewalAttendance('attendedThisMonth')">حضر هذا الشهر <i class="fas fa-sort"></i></th>
+          <th onclick="filterAndSortRenewalAttendance('absentThisMonth')">غياب هذا الشهر <i class="fas fa-sort"></i></th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="12" class="no-data-message">جارٍ تحميل بيانات المتابعة...</td></tr>
+      </tbody>
+    </table>
+    <div class="button-container">
+        <button class="button back-button" onclick="showPage('main-page')"><i class="fas fa-arrow-right"></i> العودة للصفحة الرئيسية</button>
+    </div>
+  </div>
 
   <div id="renewal-needed-students-page" class="page-section">
     <h1><i class="fas fa-exclamation-triangle"></i> الطلاب الذين يحتاجون للتجديد</h1>
@@ -1538,90 +1467,26 @@
 
     /**
      * دالة مساعدة لتحويل سلسلة الوقت (أو رأس الميعاد) إلى دقائق لغرض الفرز.
-     * ستتعامل مع سلاسل HH:mm أو كائنات Date مباشرة.
-     * @param {any} timeValue - سلسلة الوقت أو كائن Date.
+     * تستخدم convertTo24HourFormat لضمان تحويل أي تنسيق.
+     * @param {string} timeString - سلسلة الوقت.
      * @returns {number} الوقت بالدقائق من منتصف الليل.
      */
-    window.getTimeInMinutes = function(timeValue) { // <--- التأكيد على window.
-        // 1. التحقق أولاً من أن القيمة ليست فارغة أو غير صالحة
-        if (timeValue === null || timeValue === undefined || timeValue === '') return 0;
-
-        let hours, minutes;
-
-        // 2. إذا كانت القيمة كائن Date (من الخلايا المنسقة كـ "وقت")
-        if (timeValue instanceof Date) {
-            // التحقق من صحة كائن Date وتجاهل تواريخ الصفر
-            const minValidDate = new Date('1900-01-01T00:00:00.000Z');
-            if (isNaN(timeValue.getTime()) || timeValue.getTime() < minValidDate.getTime()) {
-                return 0; // تاريخ غير صالح أو تاريخ صفر، يعامل كـ 00:00 (0 دقيقة)
-            }
-            hours = timeValue.getHours();
-            minutes = timeValue.getMinutes();
-        } else {
-            // 3. إذا لم يكن كائن Date، فافترض أنه سلسلة نصية وحاول تحليلها
-            let timeString = String(timeValue).trim();
-
-            // التعامل مع "HH:MM - HH:MM" (رؤوس الأعمدة)
-            const parts = timeString.split(' - ');
-            if (parts.length > 1 && parts[0].includes(':')) {
-                timeString = parts[0]; // نأخذ جزء البداية فقط (HH:MM)
-            }
-
-            // التعامل مع "p X" (مسائي)
-            if (timeString.toLowerCase().startsWith('p ')) {
-                const hourPart = parseInt(timeString.substring(2));
-                if (!isNaN(hourPart) && hourPart >= 1 && hourPart <= 12) {
-                    hours = (hourPart === 12) ? 12 : hourPart + 12;
-                    minutes = 0;
-                } else return 0;
-            }
-            // التعامل مع "ص" (صباحي)
-            else if (timeString.toLowerCase().endsWith('ص')) {
-                const hourPart = parseInt(timeString.replace('ص', ''));
-                if (!isNaN(hourPart) && hourPart >= 1 && hourPart <= 12) {
-                    hours = (hourPart === 12) ? 0 : hourPart;
-                    minutes = 0;
-                } else return 0;
-            }
-            // التعامل مع "م" (مسائي)
-            else if (timeString.toLowerCase().endsWith('م')) {
-                const hourPart = parseInt(timeString.replace('م', ''));
-                if (!isNaN(hourPart) && hourPart >= 1 && hourPart <= 12) {
-                    hours = (hourPart === 12) ? 12 : hourPart + 12;
-                    minutes = 0;
-                } else return 0;
-            }
-            // التعامل مع التنسيق HH:MM (مثل 09:00) أو H:M (مثل 8:30)
-            else if (timeString.includes(':')) {
-                const timeParts = timeString.split(':').map(Number);
-                if (timeParts.length === 2 && !isNaN(timeParts[0]) && !isNaN(timeParts[1])) {
-                    hours = timeParts[0];
-                    minutes = timeParts[1];
-                } else return 0;
-            }
-            // لو الوقت رقم فقط (مثل 9 أو 10)
-            else {
-                const hourPart = parseInt(timeString);
-                if (!isNaN(hourPart) && hourPart >= 0 && hourPart <= 23) {
-                    hours = hourPart;
-                    minutes = 0;
-                } else return 0;
-            }
-        }
-
-        if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-            return 0;
-        }
+    function getTimeInMinutes(timeString) {
+        if (typeof timeString !== 'string' || timeString.trim() === '') return 0;
+        
+        const time24hrPart = convertTo24HourFormat(timeString);
+        
+        const [hours, minutes] = time24hrPart.split(':').map(Number);
+        if (isNaN(hours) || isNaN(minutes)) return 0;
         return hours * 60 + minutes;
-    };
-
+    }
 
     /**
      * دالة مساعدة لتحويل تنسيق 24 ساعة (HH:mm) أو (HH:mm - HH:mm) إلى 12 ساعة (H:mm ص/م).
      * @param {string} timeString - الوقت بتنسيق 24 ساعة (مثلاً "13:30" أو "09:00 - 09:30").
      * @returns {string} الوقت بتنسيق 12 ساعة (مثلاً "1:30 م").
      */
-    window.formatTime12Hour = function(timeString) { // <--- التأكيد على window.
+    function formatTime12Hour(timeString) {
         if (typeof timeString !== 'string' || timeString.trim() === '') return 'وقت غير صالح';
 
         // إذا كان تنسيق الوقت هو "HH:MM - HH:MM"، نأخذ الجزء الأول فقط
@@ -1636,21 +1501,18 @@
         const formattedHours = hours % 12 || 12; // 00:00 (منتصف الليل) تكون 12 ص، 12:00 (الظهر) تكون 12 م
 
         return `${formattedHours}:${minutes < 10 ? '0' : ''}${minutes} ${ampm}`;
-    };
+    }
 
 
     // ************************************ //
     //          دوال خاصة بـ form-page      //
     // ************************************ //
-    const MAX_SCHEDULE_SLOTS = 6; // أقصى عدد من خانات المواعيد لدعمها
-
     function loadFormDependencies() {
-        document.getElementById('dataForm').reset();
-        loadTeachersOptions('regTeacher');
-        loadPaymentStatusOptions('regPaymentStatus');
-        loadSubscriptionPackagesOptions('regSubscriptionPackage');
+        document.getElementById('dataForm').reset(); // إعادة تهيئة النموذج
+        loadTeachersOptions('regTeacher'); // تحميل المعلمين في نموذج التسجيل
+        loadPaymentStatusOptions('regPaymentStatus'); // تحميل حالات الدفع
+        loadSubscriptionPackagesOptions('regSubscriptionPackage'); // تحميل الباقات
         updateRegDays(); // إعادة ضبط الأيام والمواعيد
-        updateScheduleSlotsDisplay(); // لإظهار العدد الصحيح من الخانات في البداية (عادة 2)
     }
 
     /**
@@ -1714,186 +1576,104 @@
      */
     function updateRegDays() {
       const teacher = document.getElementById('regTeacher').value;
-      // تحديث جميع قوائم الأيام من 1 إلى MAX_SCHEDULE_SLOTS
-      for (let i = 1; i <= MAX_SCHEDULE_SLOTS; i++) {
-          const daySelect = document.getElementById(`regDay${i}`);
-          if (daySelect) { // التأكد من وجود العنصر
-              daySelect.innerHTML = `<option value="" disabled selected>اختر يومًا${i > 2 ? ' (اختياري)' : ''}</option>`; // نص اختياري بعد الميعاد الثاني
-              // مسح المواعيد المرتبطة أيضاً
-              const timeSelect = document.getElementById(`regTime${i}`);
-              if (timeSelect) {
-                  timeSelect.innerHTML = `<option value="" disabled selected>اختر ميعادًا${i > 2 ? ' (اختياري)' : ''}</option>`;
-              }
-          }
-      }
+      const day1Select = document.getElementById('regDay1');
+      const day2Select = document.getElementById('regDay2');
+
+      day1Select.innerHTML = '<option value="" disabled selected>اختر يومًا</option>';
+      day2Select.innerHTML = '<option value="" disabled selected>اختر يومًا (اختياري)</option>'; 
+
+      document.getElementById('regTime1').innerHTML = '<option value="" disabled selected>اختر ميعادًا</option>';
+      document.getElementById('regTime2').innerHTML = '<option value="" disabled selected>اختر ميعادًا (اختياري)</option>';
 
       if (!teacher || !teacherData[teacher]) {
         return;
       }
 
+      // جلب الأيام الفريدة لهذا المعلم وفرزها
       const daysForTeacher = Object.keys(teacherData[teacher]).sort(); 
 
       daysForTeacher.forEach(day => {
-        for (let i = 1; i <= MAX_SCHEDULE_SLOTS; i++) {
-            const daySelect = document.getElementById(`regDay${i}`);
-            if (daySelect) {
-                const option = document.createElement('option');
-                option.value = day;
-                option.textContent = day;
-                daySelect.appendChild(option);
-            }
-        }
+        const option1 = document.createElement('option');
+        const option2 = document.createElement('option');
+        option1.value = option2.value = day;
+        option1.textContent = option2.textContent = day;
+        day1Select.appendChild(option1);
+        day2Select.appendChild(option2);
       });
     }
+
     /**
      * تحديث خيارات المواعيد المتاحة بناءً على اليوم والمعلم المختار في form-page.
-     * تم تعديلها لتخدم جميع خانات المواعيد.
-     * @param {string} dayId - ID الخاص بعنصر الـ <select> لليوم (مثلاً regDay1).
-     * @param {string} timeId - ID الخاص بعنصر الـ <select> للميعاد (مثلاً regTime1).
+     * @param {string} dayId - ID الخاص بعنصر الـ <select> لليوم.
+     * @param {string} timeId - ID الخاص بعنصر الـ <select> للميعاد.
      */
     function updateRegTimes(dayId, timeId) {
       const teacher = document.getElementById('regTeacher').value;
       const day = document.getElementById(dayId).value;
       const timeSelect = document.getElementById(timeId);
 
-      timeSelect.innerHTML = `<option value="" disabled selected>اختر ميعادًا${parseInt(dayId.replace('regDay', '')) > 2 ? ' (اختياري)' : ''}</option>`; // نص اختياري
+      timeSelect.innerHTML = '<option value="" disabled selected>اختر ميعادًا</option>';
+      if (timeId === 'regTime2') { 
+          timeSelect.innerHTML = '<option value="" disabled selected>اختر ميعادًا (اختياري)</option>';
+      }
 
       if (!teacher || !day || !teacherData[teacher][day]) {
         return;
       }
 
+      // جلب المواعيد المتاحة لليوم المحدد وفرزها
       const availableTimes = teacherData[teacher][day].sort((a,b) => getTimeInMinutes(a) - getTimeInMinutes(b));
 
       availableTimes.forEach(time => {
         const option = document.createElement('option');
         option.value = time;
-        option.textContent = formatTime12Hour(time);
+        option.textContent = formatTime12Hour(time); // عرض الميعاد بتنسيق 12 ساعة
         timeSelect.appendChild(option);
       });
     }
 
-
-
-    /**
-     * تتحكم في إظهار وإخفاء خانات المواعيد بناءً على باقة الاشتراك المختارة.
-     */
-    function updateScheduleSlotsDisplay() {
-        const subscriptionPackageSelect = document.getElementById('regSubscriptionPackage');
-        const selectedPackage = subscriptionPackageSelect.value;
-        let slotsToShow = 2; // الافتراضي هو ميعادين
-
-        // تحديد عدد الخانات بناءً على الباقة
-        if (selectedPackage === "12 حلقات / 30 دقيقة") { // الباقة الجديدة
-            slotsToShow = 3;
-        } else if (selectedPackage === "مخصص") {
-            slotsToShow = 6;
-        } 
-        // الباقات القياسية الأخرى ستكون 2 (افتراضي)
-
-        // إظهار أو إخفاء الخانات
-        for (let i = 1; i <= MAX_SCHEDULE_SLOTS; i++) {
-            const slotGroup = document.getElementById(`scheduleSlot${i}`);
-            if (slotGroup) {
-                if (i <= slotsToShow) {
-                    slotGroup.classList.remove('hidden');
-                    // جعل الحقول مطلوبة أو اختيارية
-                    const daySelect = document.getElementById(`regDay${i}`);
-                    const timeSelect = document.getElementById(`regTime${i}`);
-                    if (i <= 1) { // الميعاد الأول دائماً مطلوب
-                        if(daySelect) daySelect.required = true;
-                        if(timeSelect) timeSelect.required = true;
-                    } else if (i <= 2) { // الميعاد الثاني مطلوب للباقات القياسية
-                        if(daySelect) daySelect.required = true;
-                        if(timeSelect) timeSelect.required = true;
-                    } else { // المواعيد من 3 إلى 6 اختيارية
-                        if(daySelect) daySelect.required = false;
-                        if(timeSelect) timeSelect.required = false;
-                    }
-                } else {
-                    slotGroup.classList.add('hidden');
-                    // مسح القيم وجعلها غير مطلوبة للحقول المخفية
-                    const daySelect = document.getElementById(`regDay${i}`);
-                    const timeSelect = document.getElementById(`regTime${i}`);
-                    if(daySelect) { daySelect.value = ''; daySelect.required = false; }
-                    if(timeSelect) { timeSelect.value = ''; timeSelect.required = false; }
-                }
-            }
-        }
-    }
-
-
-
     /**
      * إرسال بيانات نموذج التسجيل إلى Code.gs لحفظها.
-     * تم تعديلها لجمع المواعيد في مصفوفة.
      */
     function submitData() {
       const name = document.getElementById('regName').value.trim();
       const age = document.getElementById('regAge').value.trim();
       const phone = document.getElementById('regPhone').value.trim();
       const teacher = document.getElementById('regTeacher').value;
+      const day1 = document.getElementById('regDay1').value;
+      const time1 = document.getElementById('regTime1').value;
       const paymentStatus = document.getElementById('regPaymentStatus').value;
       const subscriptionPackage = document.getElementById('regSubscriptionPackage').value;
 
-      // التحقق من الحقول الأساسية المطلوبة
-      if (!name || !age || !phone || !teacher || !paymentStatus || !subscriptionPackage) {
-        showToast("الرجاء ملء جميع الحقول الأساسية المطلوبة.", 'error');
+      if (!name || !age || !phone || !teacher || !day1 || !time1 || !paymentStatus || !subscriptionPackage) {
+        showToast("الرجاء ملء جميع الحقول المطلوبة.", 'error');
         return;
       }
       
-      // جمع المواعيد الديناميكية
-      const regSlots = [];
-      let filledSlotsCount = 0;
+      // التحقق من أن اليوم الثاني والميعاد الثاني، إذا تم اختيار اليوم، يجب اختيار الميعاد أيضاً.
+      const day2 = document.getElementById('regDay2').value;
+      const time2 = document.getElementById('regTime2').value;
 
-      for (let i = 1; i <= MAX_SCHEDULE_SLOTS; i++) {
-          const slotGroup = document.getElementById(`scheduleSlot${i}`);
-          if (slotGroup && !slotGroup.classList.contains('hidden')) { // فقط الخانات الظاهرة
-              const day = document.getElementById(`regDay${i}`).value;
-              const time = document.getElementById(`regTime${i}`).value;
-
-              // التحقق من الحقول المطلوبة داخل الخانات الظاهرة
-              if (i <= 2) { // الميعاد الأول والثاني مطلوبان للباقات العادية (حتى لو لم تكن قياسية)
-                  if (!day || !time) {
-                      showToast(`الرجاء تحديد اليوم والميعاد للميعاد رقم ${i}.`, 'error');
-                      return;
-                  }
-              }
-              
-              if (day && time) {
-                  regSlots.push({ day: day, time: time });
-                  filledSlotsCount++;
-              } else if (day || time) { // لو واحد بس اللي اتملى
-                  showToast(`الرجاء تحديد اليوم والميعاد كاملاً للميعاد رقم ${i} أو تركه فارغاً.`, 'error');
-                  return;
-              }
-          }
-      }
-
-      // التحقق من الحد الأدنى للمواعيد للباقة "مخصص"
-      if (subscriptionPackage === "مخصص" && filledSlotsCount < 4) {
-          showToast("يجب تحديد 4 مواعيد على الأقل للباقة المخصصة.", 'error');
+      if (day2 && !time2) {
+          showToast("الرجاء اختيار الميعاد الثاني أو إزالة اليوم الثاني.", 'error');
           return;
       }
-      // التحقق من الحد الأدنى للمواعيد للباقة "12 حلقات / 30 دقيقة"
-      if (subscriptionPackage === "12 حلقات / 30 دقيقة" && filledSlotsCount < 3) {
-          showToast("يجب تحديد 3 مواعيد على الأقل لباقة 12 حلقة.", 'error');
+      if (!day2 && time2) {
+          showToast("الرجاء اختيار اليوم الثاني أو إزالة الميعاد الثاني.", 'error');
           return;
       }
-      // التحقق من الحد الأدنى للمواعيد للباقات القياسية (ميعادين)
-      if (filledSlotsCount < 2 && subscriptionPackage !== "12 حلقات / 30 دقيقة" && subscriptionPackage !== "مخصص") {
-          showToast("يجب تحديد ميعادين على الأقل للباقة القياسية.", "error");
-          return;
-      }
-
 
       const formData = {
         regName: name,
         regAge: age,
         regPhone: phone,
         regTeacher: teacher,
+        regDay1: day1,
+        regTime1: time1,
+        regDay2: day2, // يمكن أن يكون فارغاً
+        regTime2: time2, // يمكن أن يكون فارغاً
         regPaymentStatus: paymentStatus,
-        regSubscriptionPackage: subscriptionPackage,
-        regSlots: regSlots // إرسال مصفوفة المواعيد
+        regSubscriptionPackage: subscriptionPackage
       };
 
       const submitButton = document.querySelector('#form-page .button-primary');
@@ -1920,9 +1700,8 @@
           showToast('حدث خطأ غير متوقع: ' + error.message, 'error');
           console.error("Error submitting data:", error);
         })
-        .saveData(formData); 
+        .saveData(formData); // دالة في Code.gs
     }
-
 
 
     // ************************************ //
@@ -2061,23 +1840,12 @@
                     valA = parseFloat(valA) || 0;
                     valB = parseFloat(valB) || 0;
                 } else if (sortColumn === 'registrationDate' || sortColumn === 'subscriptionStartDate' || sortColumn === 'subscriptionEndDate' || sortColumn === 'lastRenewalDate') { // فرز التواريخ
-                    valA = valA ? new Date(valA) : new Date(0);
+                    valA = valA ? new Date(valA) : new Date(0); // تاريخ افتراضي لو فارغ
                     valB = valB ? new Date(valB) : new Date(0);
                 } else if (sortColumn === 'phone' || sortColumn === 'studentPhone' || sortColumn === 'studentID') {
                     valA = String(valA);
                     valB = String(valB);
-                }
-                // فرز المواعيد باستخدام getTimeInMinutes
-                else if (sortColumn === 'allBookedScheduleSlots') {
-                    // إذا كان لدينا أكثر من موعد، نستخدم أول ميعاد للفرز أو نجمع الدقائق
-                    // لغرض الفرز البسيط، يمكننا استخدام أول ميعاد
-                    const timeA = (Array.isArray(valA) && valA.length > 0) ? window.getTimeInMinutes(valA[0].time) : 0; // <--- استخدام window.getTimeInMinutes
-                    const timeB = (Array.isArray(valB) && valB.length > 0) ? window.getTimeInMinutes(valB[0].time) : 0; // <--- استخدام window.getTimeInMinutes
-                    if (timeA < timeB) return sortDirection === 'asc' ? -1 : 1;
-                    if (timeA > timeB) return sortDirection === 'asc' ? 1 : -1;
-                    return 0;
-                }
-                else { // فرز نصي افتراضي
+                } else { // فرز نصي افتراضي
                     valA = String(valA).toLowerCase();
                     valB = String(valB).toLowerCase();
                 }
@@ -2101,17 +1869,12 @@
         tableBody.innerHTML = '';
 
         if (students.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="11" class="no-data-message">لا توجد بيانات مطابقة لمعايير البحث/التصفية.</td></tr>'; // عدّل colspan
+            tableBody.innerHTML = '<tr><td colspan="12" class="no-data-message">لا توجد بيانات مطابقة لمعايير البحث/التصفية.</td></tr>';
             return;
         }
 
         students.forEach(student => {
             const row = document.createElement('tr');
-            // تحويل مصفوفة المواعيد إلى نص للعرض
-            const scheduleSummary = student.allBookedScheduleSlots && student.allBookedScheduleSlots.length > 0
-                ? student.allBookedScheduleSlots.map(slot => `${slot.day} (${formatTime12Hour(slot.time)})`).join(' | ')
-                : 'لا توجد مواعيد';
-
             row.innerHTML = `
                 <td>${student.name || ''}</td>
                 <td>${student.studentID || ''}</td>
@@ -2122,7 +1885,9 @@
                 <td>${student.remainingSessions !== undefined ? student.remainingSessions : 'N/A'}</td>
                 <td>${student.renewalStatus || ''}</td>
                 <td>${student.registrationDate || ''}</td>
-                <td>${scheduleSummary}</td> <td class="table-action-buttons">
+                <td>${student.day1 ? `${student.day1} (${formatTime12Hour(student.time1)})` : ''}</td>
+                <td>${student.day2 ? `${student.day2} (${formatTime12Hour(student.time2)})` : ''}</td>
+                <td class="table-action-buttons">
                     <button class="button button-primary" onclick="editStudentFromAllStudents('${student.studentID}')"><i class="fas fa-edit"></i> تعديل</button>
                     <button class="button delete" onclick="deleteStudentFromAllStudents('${student.studentID}', '${student.name}', ${student.rowIndex})"><i class="fas fa-trash-alt"></i> حذف</button>
                 </td>
@@ -2130,6 +1895,7 @@
             tableBody.appendChild(row);
         });
     }
+
     /**
      * للتحرير من صفحة "كل الطلاب" (ستوجه لصفحة التعديل).
      * @param {string} studentID - Student ID للطالب المراد تعديله.
@@ -2175,6 +1941,10 @@
     }
 
 
+    // ... (المتغيرات العالمية والدوال العامة مثل showPage, showToast, convertTo24HourFormat, getTimeInMinutes, formatTime12Hour) ...
+    // ... (دوال خاصة بـ form-page) ...
+    // ... (دوال خاصة بـ all-students-page) ...
+    // ... (بقية الدوال الأخرى في index.html، مثل dashboard-page، teacher-schedule-page، manage-slots-page، archive-page) ...
 
 
     // ************************************ //
@@ -2184,31 +1954,15 @@
      * تهيئة صفحة تعديل بيانات الطالب عند عرضها.
      */
     function loadEditStudentDependencies() {
-            document.getElementById('studentForm').classList.add('hidden'); 
-            document.getElementById('searchStudentId').value = ''; 
-            loadTeachersOptions('editTeacher'); 
-            loadSubscriptionPackagesOptions('editSubscriptionPackage');
-            loadPaymentStatusOptions('editPaymentStatus');
-
-            // إعادة تهيئة جميع خانات المواعيد وجعلها مخفية في البداية
-            for (let i = 1; i <= MAX_SCHEDULE_SLOTS; i++) {
-                const slotGroup = document.getElementById(`editScheduleSlot${i}`);
-                if (slotGroup) {
-                    slotGroup.classList.add('hidden');
-                    // مسح القيم وجعلها غير مطلوبة للحقول المخفية
-                    const daySelect = document.getElementById(`editDay${i}`);
-                    const timeSelect = document.getElementById(`editTime${i}`);
-                    if(daySelect) { daySelect.value = ''; daySelect.required = false; }
-                    if(timeSelect) { timeSelect.value = ''; timeSelect.required = false; }
-                    
-                    // مسح القيم الحالية المعروضة
-                    const currentDaySpan = document.getElementById(`currentDay${i}`);
-                    const currentTimeSpan = document.getElementById(`currentTime${i}`);
-                    if (currentDaySpan) currentDaySpan.textContent = '-';
-                    if (currentTimeSpan) currentTimeSpan.textContent = '-';
-                }
-            }
-        }
+        // إخفاء نموذج التعديل في البداية
+        document.getElementById('studentForm').classList.add('hidden'); 
+        // مسح حقل البحث
+        document.getElementById('searchStudentId').value = ''; 
+        // تحميل القوائم المنسدلة: المعلمين، الباقات، حالات الدفع (حالة التجديد)
+        loadTeachersOptions('editTeacher'); // دالة موجودة في قسم form-page
+        loadSubscriptionPackagesOptions('editSubscriptionPackage'); // دالة موجودة في قسم form-page
+        loadPaymentStatusOptions('editPaymentStatus'); // دالة موجودة في قسم form-page
+    }
 
     // ... (داخل قسم <script>، ضمن دوال edit-student-page) ...
 
@@ -2307,284 +2061,196 @@ function fetchStudentData(prefilledSearchInput = null) {
     }
 
     /**
-         * ملء نموذج التعديل ببيانات الطالب التي تم جلبها.
-         * @param {Object} student - كائن الطالب المحمل (الآن يحتوي على allBookedScheduleSlots).
-         */
-        function fillStudentForm(student) {
-          studentData = student; // تخزين البيانات العالمية
-          document.getElementById('studentForm').classList.remove('hidden');
+     * ملء نموذج التعديل ببيانات الطالب التي تم جلبها.
+     * @param {Object} student - كائن الطالب المحمل.
+     */
+    function fillStudentForm(student) {
+      studentData = student; // تخزين البيانات العالمية
+      document.getElementById('studentForm').classList.remove('hidden');
 
-          // تعبئة البيانات الأساسية
-          document.getElementById('editStudentId').value = student.studentID || '';
-          document.getElementById('editName').value = student.name || '';
-          document.getElementById('editAge').value = student.age || '';
-          document.getElementById('editPhone').value = student.phone || '';
-          // المعلم، الباقة، حالة الدفع سيتم تعيينهم بعد تحميل الخيارات
+      // تعبئة البيانات
+      document.getElementById('editStudentId').value = student.studentID || '';
+      document.getElementById('editName').value = student.name || '';
+      document.getElementById('editAge').value = student.age || '';
+      document.getElementById('editPhone').value = student.phone || ''; // رقم الهاتف ولي الأمر
+      document.getElementById('editTeacher').value = student.teacherName || ''; // اسم المعلم
 
-          // تحديث خيارات المعلمين، الباقات، حالات الدفع ثم تعيين القيم
-          loadTeachersOptions('editTeacher'); 
-          loadSubscriptionPackagesOptions('editSubscriptionPackage');
-          loadPaymentStatusOptions('editPaymentStatus');
+      // تعبئة المواعيد الحالية
+      document.getElementById('currentDay1').textContent = student.day1 ? `${student.day1} (${formatTime12Hour(student.time1)})` : '-';
+      document.getElementById('currentTime1').textContent = student.time1 ? formatTime12Hour(student.time1) : '-';
+      document.getElementById('currentDay2').textContent = student.day2 ? `${student.day2} (${formatTime12Hour(student.time2)})` : '-';
+      document.getElementById('currentTime2').textContent = student.time2 ? formatTime12Hour(student.time2) : '-';
 
-          // تأخير بسيط لضمان تحميل الخيارات قبل تعيين القيمة
+      // تحديث خيارات المعلمين، الباقات، حالات الدفع ثم تعيين القيم
+      // هذه الدوال (loadTeachersOptions, loadSubscriptionPackagesOptions, loadPaymentStatusOptions) هي نفس الدوال المستخدمة في Form Page
+      loadTeachersOptions('editTeacher'); 
+      loadSubscriptionPackagesOptions('editSubscriptionPackage');
+      loadPaymentStatusOptions('editPaymentStatus');
+
+      // تأخير بسيط لضمان تحميل الخيارات قبل تعيين القيمة
+      setTimeout(() => {
+        document.getElementById('editTeacher').value = student.teacherName || ''; // تعيين اسم المعلم
+        updateEditDays(); // لتحديث الأيام والمواعيد بناءً على المعلم المختار
+
+        setTimeout(() => {
+          document.getElementById('editDay1').value = student.day1 || '';
+          updateEditTimes('editDay1', 'editTime1');
           setTimeout(() => {
-            document.getElementById('editTeacher').value = student.teacherName || ''; 
-            document.getElementById('editPaymentStatus').value = student.renewalStatus || '';
-            document.getElementById('editSubscriptionPackage').value = student.packageName || '';
+            document.getElementById('editTime1').value = student.time1 || '';
+          }, 50);
+          
+          document.getElementById('editDay2').value = student.day2 || '';
+          updateEditTimes('editDay2', 'editTime2');
+          setTimeout(() => {
+            document.getElementById('editTime2').value = student.time2 || '';
+          }, 50);
+        }, 100);
 
-            // بعد تعيين الباقة، استدعي تحديث عرض المواعيد
-            updateEditScheduleSlotsDisplay(student.packageName); 
-            updateEditDays(); // لتحديث الأيام والمواعيد بناءً على المعلم المختار
-
-            // ملء خانات المواعيد الديناميكية بقيم الطالب
-            // ملء الخانات الحالية والقوائم المنسدلة الجديدة
-            student.allBookedScheduleSlots.forEach((slot, index) => {
-                const slotNumber = index + 1; // 1-based index
-                if (slotNumber <= MAX_SCHEDULE_SLOTS) {
-                    // ملء القيم الحالية المعروضة (Current Day/Time)
-                    const currentDaySpan = document.getElementById(`currentDay${slotNumber}`);
-                    const currentTimeSpan = document.getElementById(`currentTime${slotNumber}`);
-                    if (currentDaySpan) currentDaySpan.textContent = slot.day ? `${slot.day} (${formatTime12Hour(slot.time)})` : '-';
-                    if (currentTimeSpan) currentTimeSpan.textContent = slot.time ? formatTime12Hour(slot.time) : '-';
-
-                    // ملء القوائم المنسدلة الجديدة
-                    const daySelect = document.getElementById(`editDay${slotNumber}`);
-                    const timeSelect = document.getElementById(`editTime${slotNumber}`);
-                    if (daySelect) {
-                        daySelect.value = slot.day;
-                        updateEditTimes(`editDay${slotNumber}`, `editTime${slotNumber}`); // تحديث مواعيد هذا اليوم
-                        setTimeout(() => { // تأخير بسيط لضمان تحميل المواعيد
-                            if (timeSelect) timeSelect.value = slot.time;
-                        }, 50);
-                    }
-                }
-            });
-
-          }, 200); // تأخير أكبر قليلاً
-        }
-
-
-
-        /**
-         * تتحكم في إظهار وإخفاء خانات المواعيد في صفحة التعديل بناءً على باقة الاشتراك المختارة.
-         * @param {string} [packageNameFromStudentData] - اسم الباقة (لو جاي من بيانات الطالب المحملة).
-         */
-        function updateEditScheduleSlotsDisplay(packageNameFromStudentData = null) {
-            const subscriptionPackageSelect = document.getElementById('editSubscriptionPackage');
-            const selectedPackage = packageNameFromStudentData || subscriptionPackageSelect.value;
-            let slotsToShow = 2; // الافتراضي هو ميعادين
-
-            // تحديد عدد الخانات بناءً على الباقة (نفس المنطق من form-page)
-            if (selectedPackage === "12 حلقات / 30 دقيقة") {
-                slotsToShow = 3;
-            } else if (selectedPackage === "مخصص") {
-                slotsToShow = 6;
-            } 
-            // لباقي الباقات القياسية، slotsToShow ستبقى 2
-
-            // إظهار أو إخفاء الخانات
-            for (let i = 1; i <= MAX_SCHEDULE_SLOTS; i++) {
-                const slotGroup = document.getElementById(`editScheduleSlot${i}`);
-                if (slotGroup) {
-                    if (i <= slotsToShow) {
-                        slotGroup.classList.remove('hidden');
-                        // جعل الحقول مطلوبة أو اختيارية
-                        const daySelect = document.getElementById(`editDay${i}`);
-                        const timeSelect = document.getElementById(`editTime${i}`);
-                        // الميعاد الأول والثاني مطلوبان، البقية اختيارية
-                        if (i <= 2) { 
-                            if(daySelect) daySelect.required = true;
-                            if(timeSelect) timeSelect.required = true;
-                        } else { // المواعيد من 3 إلى 6 اختيارية
-                            if(daySelect) daySelect.value = ''; // مسح القيمة لو كانت مخفية ثم ظهرت
-                            if(timeSelect) timeSelect.value = ''; // مسح القيمة
-                            if(daySelect) daySelect.required = false;
-                            if(timeSelect) timeSelect.required = false;
-                        }
-                    } else {
-                        slotGroup.classList.add('hidden');
-                        // مسح القيم وجعلها غير مطلوبة للحقول المخفية
-                        const daySelect = document.getElementById(`editDay${i}`);
-                        const timeSelect = document.getElementById(`editTime${i}`);
-                        if(daySelect) { daySelect.value = ''; daySelect.required = false; }
-                        if(timeSelect) { timeSelect.value = ''; timeSelect.required = false; }
-                        // مسح القيم الحالية المعروضة
-                        const currentDaySpan = document.getElementById(`currentDay${i}`);
-                        const currentTimeSpan = document.getElementById(`currentTime${i}`);
-                        if (currentDaySpan) currentDaySpan.textContent = '-';
-                        if (currentTimeSpan) currentTimeSpan.textContent = '-';
-                    }
-                }
-            }
-        }
+        document.getElementById('editPaymentStatus').value = student.renewalStatus || ''; // حالة التجديد من الاشتراكات
+        document.getElementById('editSubscriptionPackage').value = student.packageName || ''; // اسم الباقة
+      }, 200); // تأخير أكبر قليلاً
+    }
 
     /**
-         * تحديث خيارات الأيام بناءً على المعلم المختار في edit-page.
-         * تم تعديلها لتخدم جميع خانات المواعيد.
-         */
-        function updateEditDays() {
-          const teacher = document.getElementById('editTeacher').value;
-          // تحديث جميع قوائم الأيام من 1 إلى MAX_SCHEDULE_SLOTS
-          for (let i = 1; i <= MAX_SCHEDULE_SLOTS; i++) {
-              const daySelect = document.getElementById(`editDay${i}`);
-              if (daySelect) { 
-                  daySelect.innerHTML = `<option value="" disabled selected>اختر يومًا${i > 2 ? ' (اختياري)' : ''}</option>`; 
-                  const timeSelect = document.getElementById(`editTime${i}`);
-                  if (timeSelect) {
-                      timeSelect.innerHTML = `<option value="" disabled selected>اختر ميعادًا${i > 2 ? ' (اختياري)' : ''}</option>`;
-                  }
-              }
-          }
+     * تحديث خيارات الأيام بناءً على المعلم المختار في edit-page.
+     */
+    function updateEditDays() {
+      const teacher = document.getElementById('editTeacher').value;
+      const day1Select = document.getElementById('editDay1');
+      const day2Select = document.getElementById('editDay2');
 
-          if (!teacher || !teacherData[teacher]) {
-            return;
-          }
+      day1Select.innerHTML = '<option value="" disabled selected>اختر يومًا</option>';
+      day2Select.innerHTML = '<option value="" disabled selected>اختر يومًا (اختياري)</option>';
 
-          const daysForTeacher = Object.keys(teacherData[teacher]).sort(); 
+      document.getElementById('editTime1').innerHTML = '<option value="" disabled selected>اختر ميعادًا</option>';
+      document.getElementById('editTime2').innerHTML = '<option value="" disabled selected>اختر ميعادًا (اختياري)</option>';
 
-          daysForTeacher.forEach(day => {
-            for (let i = 1; i <= MAX_SCHEDULE_SLOTS; i++) {
-                const daySelect = document.getElementById(`editDay${i}`);
-                if (daySelect) {
-                    const option = document.createElement('option');
-                    option.value = day;
-                    option.textContent = day;
-                    daySelect.appendChild(option);
-                }
-            }
-          });
-        }
+      if (!teacher || !teacherData[teacher]) {
+        return;
+      }
 
+      const daysForTeacher = Object.keys(teacherData[teacher]).sort();
 
-     /**
-         * تحديث خيارات المواعيد بناءً على اليوم والمعلم المختار في edit-page.
-         * تم تعديلها لتخدم جميع خانات المواعيد.
-         * @param {string} dayId - ID الخاص بعنصر الـ <select> لليوم (مثلاً editDay1).
-         * @param {string} timeId - ID الخاص بعنصر الـ <select> للميعاد (مثلاً editTime1).
-         */
-        function updateEditTimes(dayId, timeId) {
-          const teacher = document.getElementById('editTeacher').value;
-          const day = document.getElementById(dayId).value;
-          const timeSelect = document.getElementById(timeId);
-
-          timeSelect.innerHTML = `<option value="" disabled selected>اختر ميعادًا${parseInt(dayId.replace('editDay', '')) > 2 ? ' (اختياري)' : ''}</option>`;
-
-          if (!teacher || !day || !teacherData[teacher][day]) {
-            return;
-          }
-          
-          const availableTimes = teacherData[teacher][day].sort((a,b) => getTimeInMinutes(a) - getTimeInMinutes(b));
-
-          availableTimes.forEach(time => {
-            const option = document.createElement('option');
-            option.value = time;
-            option.textContent = formatTime12Hour(time);
-            timeSelect.appendChild(option);
-          });
-        }
+      daysForTeacher.forEach(day => {
+        const option1 = document.createElement('option');
+        const option2 = document.createElement('option');
+        option1.value = option2.value = day;
+        option1.textContent = option2.textContent = day;
+        day1Select.appendChild(option1);
+        day2Select.appendChild(option2);
+      });
+    }
 
     /**
-         * حفظ البيانات المعدلة للطالب.
-         * تم تعديلها لجمع المواعيد في مصفوفة.
-         */
-        function updateStudentData() {
-            // جمع البيانات من النموذج
-          const studentId = document.getElementById('editStudentId').value.trim();
-          const name = document.getElementById('editName').value.trim();
-          const age = document.getElementById('editAge').value.trim();
-          const phone = document.getElementById('editPhone').value.trim(); 
-          const teacherName = document.getElementById('editTeacher').value.trim(); 
-          const paymentStatus = document.getElementById('editPaymentStatus').value.trim(); 
-          const subscriptionPackage = document.getElementById('editSubscriptionPackage').value.trim(); 
+     * تحديث خيارات المواعيد بناءً على اليوم والمعلم المختار في edit-page.
+     * @param {string} dayId - ID الخاص بعنصر الـ <select> لليوم.
+     * @param {string} timeId - ID الخاص بعنصر الـ <select> للميعاد.
+     */
+    function updateEditTimes(dayId, timeId) {
+      const teacher = document.getElementById('editTeacher').value;
+      const day = document.getElementById(dayId).value;
+      const timeSelect = document.getElementById(timeId);
 
-          if (!studentId || !name || !age || !phone || !teacherName || !paymentStatus || !subscriptionPackage) {
-            showToast("الرجاء ملء جميع الحقول المطلوبة (عدا المواعيد الثالثة فصاعداً).", 'error');
-            return;
+      timeSelect.innerHTML = '<option value="" disabled selected>اختر ميعادًا</option>';
+      if (timeId === 'editTime2') { 
+          timeSelect.innerHTML = '<option value="" disabled selected>اختر ميعادًا (اختياري)</option>';
+      }
+
+      if (!teacher || !day || !teacherData[teacher][day]) {
+        return;
+      }
+      
+      const availableTimes = teacherData[teacher][day].sort((a,b) => getTimeInMinutes(a) - getTimeInMinutes(b));
+
+      availableTimes.forEach(time => {
+        const option = document.createElement('option');
+        option.value = time;
+        option.textContent = formatTime12Hour(time);
+        timeSelect.appendChild(option);
+      });
+    }
+
+    /**
+     * حفظ البيانات المعدلة للطالب.
+     */
+    function updateStudentData() {
+        // جمع البيانات من النموذج
+      const studentId = document.getElementById('editStudentId').value.trim();
+      const name = document.getElementById('editName').value.trim();
+      const age = document.getElementById('editAge').value.trim();
+      const phone = document.getElementById('editPhone').value.trim(); // رقم الهاتف (ولي الأمر)
+      const teacherName = document.getElementById('editTeacher').value.trim(); // اسم المعلم
+      const day1 = document.getElementById('editDay1').value.trim();
+      const time1 = document.getElementById('editTime1').value.trim();
+      const day2 = document.getElementById('editDay2').value.trim();
+      const time2 = document.getElementById('editTime2').value.trim();
+      const paymentStatus = document.getElementById('editPaymentStatus').value.trim(); // حالة التجديد من الاشتراكات
+      const subscriptionPackage = document.getElementById('editSubscriptionPackage').value.trim(); // اسم الباقة
+
+      if (!studentId || !name || !age || !phone || !teacherName || !paymentStatus || !subscriptionPackage) {
+        showToast("الرجاء ملء جميع الحقول المطلوبة (عدا المواعيد الثانية).", 'error');
+        return;
+      }
+      
+      // التأكد من أن اليوم الثاني والميعاد الثاني، إذا تم اختيار اليوم، يجب اختيار الميعاد أيضاً.
+      if (day2 && !time2) {
+          showToast("الرجاء اختيار الميعاد الثاني أو إزالة اليوم الثاني.", 'error');
+          return;
+      }
+      if (!day2 && time2) {
+          showToast("الرجاء اختيار اليوم الثاني أو إزالة الميعاد الثاني.", 'error');
+          return;
+      }
+
+      const updatedData = {
+        studentID: studentId,
+        rowIndex: studentData.rowIndex, // رقم الصف في شيت الطلاب
+        
+        editName: name,
+        editAge: age,
+        editPhone: phone,
+        editTeacher: teacherName, // اسم المعلم
+        editDay1: day1,
+        editTime1: time1,
+        editDay2: day2,
+        editTime2: time2,
+        editPaymentStatus: paymentStatus, // حالة التجديد
+        editSubscriptionPackage: subscriptionPackage,
+
+        // البيانات القديمة لغرض تحرير المواعيد القديمة في Apps Script
+        oldTeacherName: studentData.teacherName, // اسم المعلم القديم
+        oldDay1: studentData.day1,
+        oldTime1: studentData.time1,
+        oldDay2: studentData.day2,
+        oldTime2: studentData.time2,
+      };
+
+      const saveButton = document.querySelector('#edit-student-page .action-buttons-container .button-primary');
+      const originalSaveText = saveButton.innerHTML;
+      saveButton.disabled = true;
+      saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جارٍ الحفظ...';
+
+      google.script.run
+        .withSuccessHandler(response => {
+          saveButton.disabled = false;
+          saveButton.innerHTML = originalSaveText;
+          if (response.success) {
+            showToast('تم حفظ التعديلات بنجاح!', 'success');
+            loadEditStudentDependencies(); // إعادة تهيئة الصفحة بعد التعديل
+            showPage('main-page'); // العودة للصفحة الرئيسية
+          } else if (response.error) {
+            showToast('خطأ في حفظ التعديلات: ' + response.error, 'error');
           }
-          
-          // جمع المواعيد الديناميكية
-          const editedSlots = [];
-          let filledSlotsCount = 0;
+        })
+        .withFailureHandler(error => {
+          saveButton.disabled = false;
+          saveButton.innerHTML = originalSaveText;
+          showToast('حدث خطأ غير متوقع: ' + error.message, 'error');
+          console.error("Error updating student data:", error);
+        })
+        .updateStudentDataWithReassignment(updatedData); // دالة في Code.gs
+    }
 
-          for (let i = 1; i <= MAX_SCHEDULE_SLOTS; i++) {
-              const slotGroup = document.getElementById(`editScheduleSlot${i}`);
-              if (slotGroup && !slotGroup.classList.contains('hidden')) { // فقط الخانات الظاهرة
-                  const day = document.getElementById(`editDay${i}`).value;
-                  const time = document.getElementById(`editTime${i}`).value;
-
-                  // التحقق من الحقول المطلوبة داخل الخانات الظاهرة (ميعاد 1 و 2)
-                  if (i <= 2) { 
-                      if (!day || !time) {
-                          showToast(`الرجاء تحديد اليوم والميعاد للميعاد رقم ${i}.`, 'error');
-                          return;
-                      }
-                  }
-                  
-                  if (day && time) {
-                      editedSlots.push({ day: day, time: time });
-                      filledSlotsCount++;
-                  } else if (day || time) { // لو واحد بس اللي اتملى
-                      showToast(`الرجاء تحديد اليوم والميعاد كاملاً للميعاد رقم ${i} أو تركه فارغاً.`, 'error');
-                      return;
-                  }
-              }
-          }
-
-          // التحقق من الحد الأدنى للمواعيد (نفس منطق submitData)
-          if (subscriptionPackage === "مخصص" && filledSlotsCount < 4) {
-              showToast("يجب تحديد 4 مواعيد على الأقل للباقة المخصصة.", 'error');
-              return;
-          }
-          if (subscriptionPackage === "12 حلقات / 30 دقيقة" && filledSlotsCount < 3) {
-              showToast("يجب تحديد 3 مواعيد على الأقل لباقة 12 حلقة.", 'error');
-              return;
-          }
-          if (filledSlotsCount < 2 && subscriptionPackage !== "12 حلقات / 30 دقيقة" && subscriptionPackage !== "مخصص") {
-              showToast("يجب تحديد ميعادين على الأقل للباقة القياسية.", "error");
-              return;
-          }
-
-          const updatedData = {
-            studentID: studentId,
-            rowIndex: studentData.rowIndex, // رقم الصف في شيت الطلاب
-            
-            editName: name,
-            editAge: age,
-            editPhone: phone,
-            editTeacher: teacherName, // اسم المعلم
-            editedSlots: editedSlots, // إرسال مصفوفة المواعيد
-            editPaymentStatus: paymentStatus, // حالة التجديد
-            editSubscriptionPackage: subscriptionPackage,
-
-            // البيانات القديمة لم تعد تُستخدم هنا مباشرة لتحرير المواعيد
-            // لأننا سنعيد تحرير كل مواعيد الطالب ثم نحجز الجديدة في Apps Script
-          };
-
-          const saveButton = document.querySelector('#edit-student-page .action-buttons-container .button-primary');
-          const originalSaveText = saveButton.innerHTML;
-          saveButton.disabled = true;
-          saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جارٍ الحفظ...';
-
-          google.script.run
-            .withSuccessHandler(response => {
-              saveButton.disabled = false;
-              saveButton.innerHTML = originalSaveText;
-              if (response.success) {
-                showToast('تم حفظ التعديلات بنجاح!', 'success');
-                loadEditStudentDependencies(); 
-                showPage('main-page');
-              } else if (response.error) {
-                showToast('خطأ في حفظ التعديلات: ' + response.error, 'error');
-              }
-            })
-            .withFailureHandler(error => {
-              saveButton.disabled = false;
-              saveButton.innerHTML = originalSaveText;
-              showToast('حدث خطأ غير متوقع: ' + error.message, 'error');
-              console.error("Error updating student data:", error);
-            })
-            .updateStudentDataWithReassignment(updatedData); // دالة في Code.gs
-        }
     /**
      * حذف الطالب ونقله إلى الأرشيف.
      */
