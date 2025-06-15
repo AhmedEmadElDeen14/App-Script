@@ -14,7 +14,7 @@ const SUPERVISOR_SHEET_ID = '1ujHL2gFuEQzbS4-9KusLgm5ObOzRsvxZnjah8CCfgsU';
 
 
 /**
- * تُسجل الدقائق المحتسبة للمعلم في شيت "سجل حضور المعلم" الخاص به.
+ * تُسجل الدقائق المحتسبة للمعلم في شيت "سجل حضور المعلم" الخاص بملف المشرف.
  *
  * @param {string} teacherId - Teacher ID للمعلم.
  * @param {string} teacherName - اسم المعلم.
@@ -23,9 +23,10 @@ const SUPERVISOR_SHEET_ID = '1ujHL2gFuEQzbS4-9KusLgm5ObOzRsvxZnjah8CCfgsU';
  * @param {string} monthYear - الشهر والسنة بتنسيق YYYY-MM.
  */
 function recordTeacherMinutes(teacherId, teacherName, minutesToAdd, date, monthYear) {
-    const teacherPersonalAttendanceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("سجل حضور المعلم");
+    const supervisorSpreadsheet = SpreadsheetApp.openById(SUPERVISOR_SHEET_ID); // <--- تعديل
+    const teacherPersonalAttendanceSheet = supervisorSpreadsheet.getSheetByName("سجل حضور المعلم"); // <--- تعديل
     if (!teacherPersonalAttendanceSheet) {
-        Logger.log("خطأ: شيت 'سجل حضور المعلم' غير موجود في ملف المعلم لـ recordTeacherMinutes.");
+        Logger.log("خطأ: شيت 'سجل حضور المعلم' غير موجود في ملف المشرف لـ recordTeacherMinutes."); // تعديل رسالة الخطأ
         return;
     }
 
@@ -228,8 +229,9 @@ function generateUniqueAttendanceIdInSupervisor(supervisorAttendanceSheet) {
   return `ATT${(lastGeneratedIdNum + 1).toString().padStart(3, '0')}`;
 }
 
+
 /**
- * تسجل حضور/غياب/تأجيل الطالب في شيت "جدول الحصص والتحضير" الخاص بالمعلم.
+ * تسجل حضور/غياب/تأجيل الطالب في شيت "جدول الحصص والتحضير" الخاص بملف المشرف.
  * ثم تُرسل هذا التحديث إلى شيت المشرف وتُحدّث سجل الحضور المركزي وحالة الاشتراكات.
  * وإذا كان التسجيل "حضر" أو "غاب" (مخصوم)، يتم احتساب حضور المعلم في شيت "سجل حضور المعلم".
  *
@@ -242,18 +244,18 @@ function generateUniqueAttendanceIdInSupervisor(supervisorAttendanceSheet) {
  * @returns {Object} رسالة نجاح أو خطأ.
  */
 function recordStudentAttendanceInTeacherSheet(teacherId, studentId, studentName, day, timeSlot, status) {
-  const teacherSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("جدول الحصص والتحضير");
-  const teacherPersonalAttendanceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("سجل حضور المعلم");
-  if (!teacherSheet) throw new Error("شيت 'جدول الحصص والتحضير' غير موجود في ملف المعلم.");
-  if (!teacherPersonalAttendanceSheet) throw new Error("شيت 'سجل حضور المعلم' غير موجود في ملف المعلم.");
+  const supervisorSpreadsheet = SpreadsheetApp.openById(SUPERVISOR_SHEET_ID); // <--- تعديل
+  const teacherSheet = supervisorSpreadsheet.getSheetByName("جدول الحصص والتحضير"); // <--- تعديل
+  const teacherPersonalAttendanceSheet = supervisorSpreadsheet.getSheetByName("سجل حضور المعلم"); // <--- تعديل
+
+  if (!teacherSheet) throw new Error("شيت 'جدول الحصص والتحضير' غير موجود في ملف المشرف."); // تعديل رسالة الخطأ
+  if (!teacherPersonalAttendanceSheet) throw new Error("شيت 'سجل حضور المعلم' غير موجود في ملف المشرف."); // تعديل رسالة الخطأ
 
   const today = new Date();
   const todayFormatted = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyy-MM-dd");
   const currentMonthYear = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyy-MM");
   const lastUpdatedBy = Session.getActiveUser().getEmail();
   const lock = LockService.getScriptLock();
-
-  // SUPERVISOR_SHEET_ID هو متغير عام تم تعريفه في أعلى الملف.
 
   try {
     lock.waitLock(30000);
@@ -262,7 +264,7 @@ function recordStudentAttendanceInTeacherSheet(teacherId, studentId, studentName
         throw new Error("لم يتم تحديد معرف ملف المشرف في كود المعلم.");
     }
 
-    const supervisorSpreadsheet = SpreadsheetApp.openById(SUPERVISOR_SHEET_ID);
+    // const supervisorSpreadsheet = SpreadsheetApp.openById(SUPERVISOR_SHEET_ID); // تم نقله إلى الأعلى
     const supervisorAttendanceLogSheet = supervisorSpreadsheet.getSheetByName("سجل الحضور");
     const supervisorSubscriptionsSheet = supervisorSpreadsheet.getSheetByName("الاشتراكات الحالية");
     const supervisorPackagesSheet = supervisorSpreadsheet.getSheetByName("الباقات");
@@ -273,7 +275,7 @@ function recordStudentAttendanceInTeacherSheet(teacherId, studentId, studentName
     if (!supervisorPackagesSheet) throw new Error("شيت 'الباقات' غير موجود في ملف المشرف.");
 
 
-    // 1. تسجيل الحضور/الغياب/التأجيل في شيت "جدول الحصص والتحضير" الخاص بالمعلم
+    // 1. تسجيل الحضور/الغياب/التأجيل في شيت "جدول الحصص والتحضير" الخاص بالمشرف (الآن)
     // الأعمدة في شيت "جدول الحصص والتحضير": Teacher ID, Day, Time Slot, Student ID, Student Name, Status, Date, Notes, Last Updated By
     teacherSheet.appendRow([
       teacherId,
@@ -286,7 +288,7 @@ function recordStudentAttendanceInTeacherSheet(teacherId, studentId, studentName
       "", // ملاحظات
       lastUpdatedBy
     ]);
-    Logger.log(`تم تسجيل ${status} الطالب ${studentName} في ملف المعلم.`);
+    Logger.log(`تم تسجيل ${status} الطالب ${studentName} في شيت جدول الحصص بالمشرف.`); // تعديل الرسالة
 
     // 2. تحديث سجل المشرف المركزي
     // التحقق من عدم تسجيل الحضور/الغياب مسبقًا لنفس الطالب في نفس التاريخ والميعاد في سجل المشرف
@@ -357,7 +359,7 @@ function recordStudentAttendanceInTeacherSheet(teacherId, studentId, studentName
       classType,
       `تم التسجيل بواسطة المعلم: ${Session.getActiveUser().getEmail()}`
     ]);
-    Logger.log(`تم تسجيل ${status} للطالب ${studentName} (ID: ${studentId}) في سجل المشرف مباشرة من ملف المعلم.`);
+    Logger.log(`تم تسجيل ${status} للطالب ${studentName} (ID: ${studentId}) في سجل المشرف مباشرة من واجهة المعلم.`); // تعديل الرسالة
 
     // 3. تطبيق المنطق الجديد على حصص الطالب والمعلم
     if (classType === "عادية" && subscriptionRowIndex !== -1) { // فقط للطلاب المشتركين
@@ -407,7 +409,7 @@ function recordStudentAttendanceInTeacherSheet(teacherId, studentId, studentName
         recordTeacherMinutes(teacherId, studentName, sessionDurationMinutes, today, currentMonthYear);
     }
 
-    return { success: `تم تسجيل ${status} الطالب ${studentName} في ملف المعلم وتحديث سجل المشرف.` };
+    return { success: `تم تسجيل ${status} الطالب ${studentName} وتحديث سجل المشرف.` }; // تعديل الرسالة
 
   } catch (e) {
     Logger.log("خطأ في recordStudentAttendanceInTeacherSheet: " + e.message);
@@ -519,10 +521,28 @@ function getAllStudentsForTeacher(teacherId) {
       };
 
       const bookedSlots = studentBookedSlotsMap.get(studentID) || [];
-      studentInfo.day1 = bookedSlots[0] ? bookedSlots[0].day : '';
-      studentInfo.time1 = bookedSlots[0] ? bookedSlots[0].timeSlotHeader : '';
-      studentInfo.day2 = bookedSlots[1] ? bookedSlots[1].day : '';
-      studentInfo.time2 = bookedSlots[1] ? bookedSlots[1].timeSlotHeader : '';
+      
+      // التعديل: إضافة مصفوفة بجميع المواعيد المحجوزة
+      studentInfo.allBookedScheduleSlots = bookedSlots.map(slot => ({
+          day: slot.day,
+          time: slot.timeSlotHeader
+      })).sort((a,b) => {
+          // دالة مساعدة لترتيب الأيام
+          const daysOrder = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+          const dayAIndex = daysOrder.indexOf(a.day);
+          const dayBIndex = daysOrder.indexOf(b.day);
+          if (dayAIndex !== dayBIndex) return dayAIndex - dayBIndex;
+          
+          // دالة getTimeInMinutes لتحويل الوقت إلى دقائق للفرز (يجب أن تكون متاحة هنا أو تعرفها)
+          // سأقوم بتضمينها هنا لتكون ذاتية
+          return getTimeInMinutes(a.time) - getTimeInMinutes(b.time); 
+      });
+
+      // لإبقاء التوافق مع العرض القديم إذا كان لا يزال يستخدم في مكان ما
+      studentInfo.day1 = studentInfo.allBookedScheduleSlots[0] ? studentInfo.allBookedScheduleSlots[0].day : '';
+      studentInfo.time1 = studentInfo.allBookedScheduleSlots[0] ? studentInfo.allBookedScheduleSlots[0].time : '';
+      studentInfo.day2 = studentInfo.allBookedScheduleSlots[1] ? studentInfo.allBookedScheduleSlots[1].day : '';
+      studentInfo.time2 = studentInfo.allBookedScheduleSlots[1] ? studentInfo.allBookedScheduleSlots[1].time : '';
       
       allTeacherStudents.push(studentInfo);
     }
@@ -547,9 +567,19 @@ function getAllStudentsForTeacher(teacherId) {
             //Teacher Name (هذا هو المعلم الحالي)
         };
         // المواعيد المباشرة من شيت الطلاب التجريبيين
-        trialStudentInfo.day1 = String(row[6] || '').trim();
-        trialStudentInfo.time1 = String(row[7] || '').trim();
-        trialStudentInfo.day2 = ''; // الطلاب التجريبيين لهم ميعاد واحد
+        // التعديل: تعبئة allBookedScheduleSlots للطلاب التجريبيين أيضاً
+        trialStudentInfo.allBookedScheduleSlots = [];
+        if (String(row[6] || '').trim() && String(row[7] || '').trim()) {
+            trialStudentInfo.allBookedScheduleSlots.push({
+                day: String(row[6] || '').trim(), // اليوم الأول
+                time: String(row[7] || '').trim() // الميعاد الأول
+            });
+        }
+        
+        // لإبقاء التوافق مع العرض القديم إذا كان لا يزال يستخدم في مكان ما
+        trialStudentInfo.day1 = trialStudentInfo.allBookedScheduleSlots[0] ? trialStudentInfo.allBookedScheduleSlots[0].day : '';
+        trialStudentInfo.time1 = trialStudentInfo.allBookedScheduleSlots[0] ? trialStudentInfo.allBookedScheduleSlots[0].time : '';
+        trialStudentInfo.day2 = ''; // الطلاب التجريبيين لهم ميعاد واحد عادةً
         trialStudentInfo.time2 = '';
 
         allTeacherStudents.push(trialStudentInfo);
@@ -558,6 +588,15 @@ function getAllStudentsForTeacher(teacherId) {
 
   Logger.log(`تم جلب ${allTeacherStudents.length} طالب للمعلم ID ${teacherId}.`);
   return allTeacherStudents;
+}
+
+// دالة مساعدة لـ getAllStudentsForTeacher - يمكن نقلها لمكان مشترك إذا كانت تستخدم في دوال أخرى
+function getTimeInMinutes(timeString) {
+    if (typeof timeString !== 'string' || timeString.trim() === '') return 0;
+    let time24hrPart = timeString.split(' - ')[0].trim();
+    const [hours, minutes] = time24hrPart.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return 0;
+    return hours * 60 + minutes;
 }
 
 /**
@@ -805,135 +844,132 @@ function updateTeacherSlotsInSupervisor(teacherId, day, selectedSlots) {
 
 /**
  * تجلب وتحسب ملخص أداء المعلم للشهر الحالي، بما في ذلك إحصائيات الطلاب والمواعيد.
- * تعتمد على شيت "جدول الحصص والتحضير" و "سجل حضور المعلم" الخاص بالمعلم، وشيتات المشرف.
+ * تعتمد على شيت "جدول الحصص والتحضير" و "سجل حضور المعلم" الخاص بملف المشرف، وشيتات المشرف.
  *
  * @param {string} teacherId - Teacher ID للمعلم المراد جلب ملخصه.
  * @returns {Object} كائن يحتوي على الإحصائيات الشهرية للمعلم.
  * أو {Object} كائن خطأ.
  */
-function getTeacherMonthlySummary(teacherId) {
-  const teacherClassesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("جدول الحصص والتحضير");
-  const teacherPersonalAttendanceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("سجل حضور المعلم");
-  const supervisorSpreadsheet = SpreadsheetApp.openById(SUPERVISOR_SHEET_ID);
-  const supervisorStudentsSheet = supervisorSpreadsheet.getSheetByName("الطلاب");
-  const supervisorTrialStudentsSheet = supervisorSpreadsheet.getSheetByName("الطلاب التجريبيون");
-  const supervisorTeachersAvailableSlotsSheet = supervisorSpreadsheet.getSheetByName("المواعيد المتاحة للمعلمين");
-  // supervisorSubscriptionsSheet ليست ضرورية في هذه الدالة بعد الآن
+function getTeacherMonthlySummary(teacherId) { // Teacher ID هنا هو المعرف الوحيد الذي نحتاجه للتصفية
+    const supervisorSpreadsheet = SpreadsheetApp.openById(SUPERVISOR_SHEET_ID);
+    const teacherClassesSheet = supervisorSpreadsheet.getSheetByName("جدول الحصص والتحضير");
+    const teacherPersonalAttendanceSheet = supervisorSpreadsheet.getSheetByName("سجل حضور المعلم");
+    const supervisorStudentsSheet = supervisorSpreadsheet.getSheetByName("الطلاب"); // هذا الشيت موجود في ملف المشرف
+    const supervisorTrialStudentsSheet = supervisorSpreadsheet.getSheetByName("الطلاب التجريبيون"); // هذا الشيت موجود في ملف المشرف
+    const supervisorTeachersAvailableSlotsSheet = supervisorSpreadsheet.getSheetByName("المواعيد المتاحة للمعلمين"); // هذا الشيت موجود في ملف المشرف
 
-  if (!teacherClassesSheet) return { error: "شيت 'جدول الحصص والتحضير' غير موجود." };
-  if (!teacherPersonalAttendanceSheet) return { error: "شيت 'سجل حضور المعلم' غير موجود." };
-  if (!supervisorStudentsSheet) return { error: "شيت 'الطلاب' غير موجود بملف المشرف." };
-  if (!supervisorTrialStudentsSheet) return { error: "شيت 'الطلاب التجريبيون' غير موجود بملف المشرف." };
-  if (!supervisorTeachersAvailableSlotsSheet) return { error: "شيت 'المواعيد المتاحة للمعلمين' غير موجود بملف المشرف." };
-  
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  const currentMonthYearFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM");
-
-  const summary = {
-    completedClasses: 0,
-    totalAbsences: 0,
-    postponedClasses: 0,
-    totalWorkingMinutes: 0,
-    totalWorkingHours: 0.00,
-    totalRegisteredStudents: 0,
-    totalBookedSlots: 0,
-    totalAvailableSlots: 0
-  };
-
-  // 1. حساب الإحصائيات من شيت "جدول الحصص والتحضير" (للحصص التي تم تسجيلها هذا الشهر)
-  const classRecordsData = teacherClassesSheet.getDataRange().getValues();
-  const studentAbsenceCounterMap = new Map();
-
-  classRecordsData.forEach((row, index) => {
-    if (index === 0) return;
+    if (!teacherClassesSheet) return { error: "شيت 'جدول الحصص والتحضير' غير موجود بملف المشرف." };
+    if (!teacherPersonalAttendanceSheet) return { error: "شيت 'سجل حضور المعلم' غير موجود بملف المشرف." };
+    if (!supervisorStudentsSheet) return { error: "شيت 'الطلاب' غير موجود بملف المشرف." };
+    if (!supervisorTrialStudentsSheet) return { error: "شيت 'الطلاب التجريبيون' غير موجود بملف المشرف." };
+    if (!supervisorTeachersAvailableSlotsSheet) return { error: "شيت 'المواعيد المتاحة للمعلمين' غير موجود بملف المشرف." };
     
-    const recordDate = row[6]; // العمود G: Date
-    const status = String(row[5] || '').trim(); // العمود F: Status ("حضر", "غاب", "تأجيل")
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const currentMonthYearFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM");
 
-    if (recordDate instanceof Date && recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear) {
-      if (status === "حضر") {
-        summary.completedClasses++;
-      } else if (status === "غاب") {
-        summary.totalAbsences++;
-      } else if (status === "تأجيل") {
-        summary.postponedClasses++;
-      }
-    }
-  });
+    const summary = {
+        completedClasses: 0,
+        totalAbsences: 0,
+        postponedClasses: 0,
+        totalWorkingMinutes: 0,
+        totalWorkingHours: 0.00,
+        totalRegisteredStudents: 0,
+        totalBookedSlots: 0,
+        totalAvailableSlots: 0
+    };
 
-  // 2. حساب إجمالي دقائق العمل من شيت "سجل حضور المعلم"
-  const personalAttendanceRecords = teacherPersonalAttendanceSheet.getDataRange().getValues();
-  Logger.log("Tracing minutes - currentMonthYearFormatted: " + currentMonthYearFormatted); // <--- LOG
-  let foundMonthlyRecord = false; // <--- LOG
-
-  personalAttendanceRecords.forEach((row, index) => {
-    if (index === 0) return;
+    // 1. حساب الإحصائيات من شيت "جدول الحصص والتحضير" (للحصص التي تم تسجيلها هذا الشهر)
+    const classRecordsData = teacherClassesSheet.getDataRange().getValues();
     
-    const rawRecordMonthYear = row[1]; // القيمة الخام من العمود B
-    const recordMonthYear = (rawRecordMonthYear instanceof Date) ? Utilities.formatDate(rawRecordMonthYear, Session.getScriptTimeZone(), "yyyy-MM") : String(rawRecordMonthYear || '').trim(); // تنسيقها إذا كانت Date object
-    const totalMinutesForMonth = row[3]; // العمود D: Total Session Minutes
+    classRecordsData.forEach((row, index) => {
+        if (index === 0) return;
+        
+        const recordTeacherId = String(row[0] || '').trim(); // العمود A: Teacher ID في سجل الحصص
+        const recordDate = row[6]; // العمود G: Date
+        const status = String(row[5] || '').trim(); // العمود F: Status ("حضر", "غاب", "تأجيل")
 
-    Logger.log("Tracing minutes - Checking row " + (index + 1) + ": MonthYear=" + recordMonthYear + ", Minutes=" + totalMinutesForMonth); // <--- LOG
-
-    if (recordMonthYear === currentMonthYearFormatted && typeof totalMinutesForMonth === 'number') {
-      summary.totalWorkingMinutes = totalMinutesForMonth;
-      foundMonthlyRecord = true; // <--- LOG
-      Logger.log("Tracing minutes - Match found for month: " + recordMonthYear + ", Total Minutes: " + totalMinutesForMonth); // <--- LOG
-    }
-  });
-  if (!foundMonthlyRecord) { // <--- LOG
-      Logger.log("Tracing minutes - No matching monthly record found for " + currentMonthYearFormatted + " or minutes not a number."); // <--- LOG
-  }
-
-  // 3. حساب الساعات النهائية
-  summary.totalWorkingHours = (summary.totalWorkingMinutes / 60).toFixed(2);
-
-  // 4. حساب عدد الطلاب المسجلين مع المعلم والمواعيد المحجوزة/المتاحة
-  const studentsWithTeacher = new Set(); // لضمان الطلاب الفريدين
-  
-  const allSlotsData = supervisorTeachersAvailableSlotsSheet.getDataRange().getValues();
-  
-  for (let i = 1; i < allSlotsData.length; i++) {
-    const row = allSlotsData[i];
-    const teacherIdInSlot = String(row[0] || '').trim();
-    if (teacherIdInSlot === teacherId) { // فقط المواعيد الخاصة بهذا المعلم
-        const headers = allSlotsData[0];
-        const startColIndexForSlots = 2; // العمود C
-        for (let colIndex = startColIndexForSlots; colIndex < headers.length; colIndex++) {
-            const slotValue = String(row[colIndex] || '').trim();
-            const timeSlotHeader = String(headers[colIndex] || '').trim();
-
-            if (slotValue.startsWith("STD") || slotValue.startsWith("TRL")) {
-                studentsWithTeacher.add(slotValue);
-                summary.totalBookedSlots++;
-            } else if (slotValue === timeSlotHeader) { // متاح (يحتوي على رأس العمود)
-                summary.totalAvailableSlots++;
+        // **التعديل هنا: تصفية حسب teacherId**
+        if (recordTeacherId === teacherId && recordDate instanceof Date && recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear) {
+            if (status === "حضر") {
+                summary.completedClasses++;
+            } else if (status === "غاب") {
+                summary.totalAbsences++;
+            } else if (status === "تأجيل") {
+                summary.postponedClasses++;
             }
         }
+    });
+
+    // 2. حساب إجمالي دقائق العمل من شيت "سجل حضور المعلم"
+    const personalAttendanceRecords = teacherPersonalAttendanceSheet.getDataRange().getValues();
+    
+    personalAttendanceRecords.forEach((row, index) => {
+        if (index === 0) return;
+        
+        const logTeacherId = String(row[0] || '').trim(); // العمود A: Teacher ID في سجل حضور المعلم
+        const rawRecordMonthYear = row[1]; // القيمة الخام من العمود B
+        const recordMonthYear = (rawRecordMonthYear instanceof Date) ? Utilities.formatDate(rawRecordMonthYear, Session.getScriptTimeZone(), "yyyy-MM") : String(rawRecordMonthYear || '').trim();
+        const totalMinutesForMonth = row[3]; // العمود D: Total Session Minutes
+
+        // **التعديل هنا: تصفية حسب teacherId**
+        if (logTeacherId === teacherId && recordMonthYear === currentMonthYearFormatted && typeof totalMinutesForMonth === 'number') {
+            summary.totalWorkingMinutes = totalMinutesForMonth;
+            // Logger.log("Tracing minutes - Match found for month: " + recordMonthYear + ", Total Minutes: " + totalMinutesForMonth); // لا حاجة لـ foundMonthlyRecord بعد التصفية
+        }
+    });
+    // لا حاجة لرسالة "No matching monthly record found" هنا، فالقيمة الافتراضية 0 صحيحة إذا لم يكن هناك سجل
+
+    // 3. حساب الساعات النهائية
+    summary.totalWorkingHours = (summary.totalWorkingMinutes / 60).toFixed(2);
+
+    // 4. حساب عدد الطلاب المسجلين مع المعلم والمواعيد المحجوزة/المتاحة
+    const studentsWithTeacher = new Set(); // لضمان الطلاب الفريدين
+    
+    const allSlotsData = supervisorTeachersAvailableSlotsSheet.getDataRange().getValues();
+    
+    for (let i = 1; i < allSlotsData.length; i++) {
+      const row = allSlotsData[i];
+      const teacherIdInSlot = String(row[0] || '').trim();
+      // **التعديل هنا: تصفية حسب teacherId**
+      if (teacherIdInSlot === teacherId) { // فقط المواعيد الخاصة بهذا المعلم
+          const headers = allSlotsData[0];
+          const startColIndexForSlots = 2; // العمود C
+          for (let colIndex = startColIndexForSlots; colIndex < headers.length; colIndex++) {
+              const slotValue = String(row[colIndex] || '').trim();
+              const timeSlotHeader = String(headers[colIndex] || '').trim();
+
+              if (slotValue.startsWith("STD") || slotValue.startsWith("TRL")) {
+                  studentsWithTeacher.add(slotValue);
+                  summary.totalBookedSlots++;
+              } else if (slotValue === timeSlotHeader) { // متاح (يحتوي على رأس العمود)
+                  summary.totalAvailableSlots++;
+              }
+          }
+      }
     }
-  }
 
-  summary.totalRegisteredStudents = studentsWithTeacher.size;
+    summary.totalRegisteredStudents = studentsWithTeacher.size;
 
-  return summary;
+    return summary;
 }
 
 
 /**
- * تجلب إجمالي دقائق عمل معلم محدد لشهر محدد من شيت سجل حضوره.
- * @param {string} teacherSheetId - معرف ملف Google Sheet الخاص بالمعلم.
+ * تجلب إجمالي دقائق عمل معلم محدد لشهر محدد من شيت سجل حضوره في ملف المشرف.
+ * (هذه الدالة لم تعد تُستخدم بعد تعديل recordTeacherMinutes و getTeacherMonthlySummary،
+ * ولكن تم تعديلها لتشير إلى ملف المشرف للمرجع).
  * @param {string} teacherId - معرف المعلم.
  * @param {string} monthYear - الشهر والسنة بتنسيق YYYY-MM (مثلاً: "2025-06").
  * @returns {number|null} إجمالي الدقائق أو null إذا لم يتم العثور على السجل.
  */
-function getTotalMinutesForTeacher(teacherSheetId, teacherId, monthYear) {
+function getTotalMinutesForTeacher(teacherId, monthYear) { // تم حذف teacherSheetId من البارامترات
   try {
-    const teacherSpreadsheet = SpreadsheetApp.openById(teacherSheetId);
-    const teacherPersonalAttendanceSheet = teacherSpreadsheet.getSheetByName("سجل حضور المعلم");
+    const supervisorSpreadsheet = SpreadsheetApp.openById(SUPERVISOR_SHEET_ID); // <--- تعديل
+    const teacherPersonalAttendanceSheet = supervisorSpreadsheet.getSheetByName("سجل حضور المعلم"); // <--- تعديل
 
     if (!teacherPersonalAttendanceSheet) {
-      Logger.log(`خطأ: شيت 'سجل حضور المعلم' غير موجود في ملف المعلم ID: ${teacherSheetId}`);
+      Logger.log(`خطأ: شيت 'سجل حضور المعلم' غير موجود في ملف المشرف لـ getTotalMinutesForTeacher.`); // تعديل رسالة الخطأ
       return null;
     }
 
