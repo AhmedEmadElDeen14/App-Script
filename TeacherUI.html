@@ -427,8 +427,7 @@
           <th onclick="window.filterAndSortTeacherStudents('phone')">رقم الهاتف <i class="fas fa-sort"></i></th>
           <th onclick="window.filterAndSortTeacherStudents('basicStatus')">الحالة <i class="fas fa-sort"></i></th>
           <th onclick="window.filterAndSortTeacherStudents('packageName')">الباقة <i class="fas fa-sort"></i></th>
-          <th onclick="window.filterAndSortTeacherStudents('day1')">الميعاد الأول <i class="fas fa-sort"></i></th>
-          <th onclick="window.filterAndSortTeacherStudents('day2')">الميعاد الثاني <i class="fas fa-sort"></i></th>
+          <th onclick="window.filterAndSortTeacherStudents('allBookedScheduleSlots')">المواعيد <i class="fas fa-sort"></i></th>
         </tr>
       </thead>
       <tbody>
@@ -992,30 +991,34 @@
      * @param {Array<Object>} students - مصفوفة الطلاب المراد عرضها.
      */
     window.displayTeacherStudentsData = function(students) {
-        const tableBody = document.querySelector('#teacherStudentsTable tbody');
-        tableBody.innerHTML = '';
+    const tableBody = document.querySelector('#teacherStudentsTable tbody');
+    tableBody.innerHTML = '';
 
-        if (students.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="7" class="no-data-message">لا توجد بيانات مطابقة لمعايير البحث/التصفية.</td></tr>';
-            return;
-        }
+    if (students.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" class="no-data-message">لا توجد بيانات مطابقة لمعايير البحث/التصفية.</td></tr>'; // تم تعديل colspan
+        return;
+    }
 
-        students.forEach(student => {
-            const row = document.createElement('tr');
-            const displayId = student.studentID || student.trialID || '';
+    students.forEach(student => {
+        const row = document.createElement('tr');
+        const displayId = student.studentID || student.trialID || '';
 
-            row.innerHTML = `
-                <td>${student.name || ''}</td>
-                <td>${displayId}</td>
-                <td>${student.phone || ''}</td>
-                <td>${student.basicStatus || ''}</td>
-                <td>${student.packageName || ''}</td>
-                <td>${student.day1 ? `${student.day1} (${formatTime12Hour(student.time1)})` : ''}</td>
-                <td>${student.day2 ? `${student.day2} (${formatTime12Hour(student.time2)})` : ''}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-    };
+        // تعديل لعرض جميع المواعيد
+        const scheduleSummary = student.allBookedScheduleSlots && student.allBookedScheduleSlots.length > 0
+            ? student.allBookedScheduleSlots.map(slot => `${slot.day} (${window.formatTime12Hour(slot.time)})`).join(' | ')
+            : 'لا توجد مواعيد';
+
+        row.innerHTML = `
+            <td>${student.name || ''}</td>
+            <td>${displayId}</td>
+            <td>${student.phone || ''}</td>
+            <td>${student.basicStatus || ''}</td>
+            <td>${student.packageName || ''}</td>
+            <td>${scheduleSummary}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+};
 
     // ************************************ //
     //          دوال خاصة بـ Manage Teacher Slots Page //
