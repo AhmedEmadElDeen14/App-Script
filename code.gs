@@ -518,160 +518,141 @@ function getPaymentStatusList() {
  * وتحديث المواعيد المحجوزة في شيت "المواعيد المتاحة للمعلمين".
  *
  * @param {Object} formData - كائن يحتوي على بيانات النموذج المرسلة من الواجهة الأمامية.
- * المتوقع من الواجهة الأمامية (من حقول التسجيل):
- * { regName, regAge, regPhone, regTeacher (اسم المعلم), regDay1, regTime1,
- * regDay2, regTime2, regPaymentStatus (حالة الدفع), regSubscriptionPackage (اسم الباقة) }
- * @returns {Object} كائن يحتوي على رسالة نجاح أو خطأ.
  */
 function saveData(formData) {
-  const studentsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الطلاب");
-  const subscriptionsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الاشتراكات الحالية");
-  const teachersAvailableSlotsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("المواعيد المتاحة للمعلمين");
-  const teachersSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("المعلمين");
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const studentsSheet = ss.getSheetByName("الطلاب");
+  const subscriptionsSheet = ss.getSheetByName("الاشتراكات الحالية");
+  const teachersAvailableSlotsSheet = ss.getSheetByName("المواعيد المتاحة للمعلمين");
+  const teachersSheet = ss.getSheetByName("المعلمين");
 
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
 
-    // التحقق من وجود الشيتات الضرورية
     if (!studentsSheet) throw new Error("لم يتم العثور على شيت 'الطلاب'.");
     if (!subscriptionsSheet) throw new Error("لم يتم العثور على شيت 'الاشتراكات الحالية'.");
     if (!teachersAvailableSlotsSheet) throw new Error("لم يتم العثور على شيت 'المواعيد المتاحة للمعلمين'.");
     if (!teachersSheet) throw new Error("لم يتم العثور على شيت 'المعلمين'.");
 
-    // 1. جلب Teacher ID من اسم المعلم
-    const teacherId = getTeacherIdByName(formData.regTeacher); // دالة مساعدة
+    const teacherId = getTeacherIdByName(formData.regTeacher);
     if (!teacherId) throw new Error(`لم يتم العثور على Teacher ID للمعلم: ${formData.regTeacher}`);
 
-    // 2. حفظ الطالب في شيت "الطلاب"
-    const newStudentId = generateUniqueStudentId(studentsSheet); // دالة موجودة
+    const newStudentId = generateUniqueStudentId(studentsSheet);
     const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
 
-    // تحديد الحالة الأساسية للطالب بناءً على حالة الدفع للحلقة التجريبية
-    let studentBasicStatus = "قيد التسجيل"; // افتراضي
+    let studentBasicStatus = "قيد التسجيل";
     if (formData.regPaymentStatus === "تم الدفع") {
-        studentBasicStatus = "مشترك";
+      studentBasicStatus = "مشترك";
     } else if (formData.regPaymentStatus === "حلقة تجريبية") {
-        studentBasicStatus = "تجريبي";
-    } else if (formData.regPaymentStatus === "لم يشترك" || formData.regPaymentStatus === "تم دفع جزء") {
-        studentBasicStatus = "معلق"; // أو حالة أخرى مناسبة
+      studentBasicStatus = "تجريبي";
+    } else if (["لم يشترك", "تم دفع جزء"].includes(formData.regPaymentStatus)) {
+      studentBasicStatus = "معلق";
     }
 
-
-    // ترتيب الأعمدة في شيت "الطلاب": Student ID, اسم الطالب, السن, رقم الهاتف (ولي الأمر), رقم هاتف الطالب (إن وجد), البلد, تاريخ التسجيل, الحالة الأساسية للطالب, ملاحظات
     studentsSheet.appendRow([
-      newStudentId,                                   // Student ID (A)
-      formData.regName,                               // اسم الطالب (B)
-      formData.regAge,                                // السن (C)
-      String(formData.regPhone).trim(),               // رقم الهاتف (ولي الأمر) (D)
-      "",                                             // رقم هاتف الطالب (إن وجد) (E)
-      "",                                             // البلد (F)
-      today,                                          // تاريخ التسجيل (G)
-      studentBasicStatus,                             // الحالة الأساسية للطالب (H)
-      ""                                              // ملاحظات (I)
+      newStudentId,
+      formData.regName,
+      formData.regAge,
+      String(formData.regPhone).trim(),
+      "",
+      "",
+      today,
+      studentBasicStatus,
+      ""
     ]);
-    Logger.log(`تم حفظ الطالب ${formData.regName} (ID: ${newStudentId}) في شيت 'الطلاب'.`);
+    Logger.log(`✅ تم حفظ الطالب ${formData.regName} (ID: ${newStudentId}) في شيت الطلاب.`);
 
-    // 3. إنشاء اشتراك في شيت "الاشتراكات الحالية"
-    const newSubscriptionId = generateUniqueSubscriptionId(subscriptionsSheet); // دالة مساعدة
+    const newSubscriptionId = generateUniqueSubscriptionId(subscriptionsSheet);
     const packageName = formData.regSubscriptionPackage;
-    const packageDetails = getPackageDetails(packageName); // دالة مساعدة
+    const packageDetails = getPackageDetails(packageName);
 
-    let subscriptionRenewalStatus = "تم التجديد"; // افتراضي للاشتراك الجديد
+    let subscriptionRenewalStatus = "تم التجديد";
     let totalClassesAttended = 0;
-    let subscriptionType = "شهري"; // افتراضي
-    
-    // ضبط الحالة التفصيلية للتجديد ونوع الحصة بناءً على حالة الدفع
-    if (formData.regPaymentStatus === "حلقة تجريبية") {
-        subscriptionRenewalStatus = "تجريبي";
-        totalClassesAttended = 0; // الحصص التجريبية لا تخصم من الاشتراك الأساسي
-    } else { // لو مش تجريبي، نعتبره اشتراك عادي
-        if (packageDetails && packageDetails['نوع الباقة']) {
-            subscriptionType = packageDetails['نوع الباقة'];
-        }
+    let subscriptionType = "شهري";
+
+    if (formData.subscriptionType) {
+      subscriptionType = formData.subscriptionType;
+    } else if (formData.regPaymentStatus === "حلقة تجريبية") {
+      subscriptionRenewalStatus = "تجريبي";
+    } else if (packageDetails && packageDetails['نوع الباقة']) {
+      subscriptionType = packageDetails['نوع الباقة'];
     }
 
-    // حساب تاريخ نهاية الاشتراك المتوقع (بالنسبة للاشتراكات الشهرية)
     let endDate = "";
-    if (subscriptionType === "شهري" && packageDetails && packageDetails['عدد الحصص الكلي'] > 0) {
-        // يمكن حساب تاريخ نهاية الاشتراك بشكل أكثر تعقيدًا بناءً على عدد الحصص
-        // أو ببساطة بزيادة شهر واحد من تاريخ البداية
-        const startDate = new Date(today);
-        startDate.setMonth(startDate.getMonth() + 1);
-        endDate = Utilities.formatDate(startDate, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    const startDate = new Date(today);
+    if (subscriptionType === "شهري") {
+      startDate.setMonth(startDate.getMonth() + 1);
+      endDate = Utilities.formatDate(startDate, Session.getScriptTimeZone(), "yyyy-MM-dd");
     } else if (subscriptionType === "نصف سنوي") {
-        const startDate = new Date(today);
-        startDate.setMonth(startDate.getMonth() + 6); // إضافة 6 أشهر
-        endDate = Utilities.formatDate(startDate, Session.getScriptTimeZone(), "yyyy-MM-dd");
+      startDate.setMonth(startDate.getMonth() + 6);
+      endDate = Utilities.formatDate(startDate, Session.getScriptTimeZone(), "yyyy-MM-dd");
     }
 
-
-    // ترتيب الأعمدة في شيت "الاشتراكات الحالية": Subscription ID, Student ID, اسم الباقة, Teacher ID, تاريخ بداية الاشتراك, تاريخ نهاية الاشتراك المتوقع, عدد الحصص الحاضرة, الحالة التفصيلية للتجديد, تاريخ آخر تجديد, مبلغ الاشتراك الكلي, المبلغ المدفوع حتى الآن, المبلغ المتبقي, ملاحظات خاصة بالاشتراك
     subscriptionsSheet.appendRow([
-      newSubscriptionId,                              // Subscription ID (A)
-      newStudentId,                                   // Student ID (B)
-      packageName,                                    // اسم الباقة (C)
-      teacherId,                                      // Teacher ID (D)
-      today,                                          // تاريخ بداية الاشتراك (E)
-      endDate,                                        // تاريخ نهاية الاشتراك المتوقع (F)
-      totalClassesAttended,                           // عدد الحصص الحاضرة (G)
-      subscriptionRenewalStatus,                      // الحالة التفصيلية للتجديد (H)
-      today,                                          // تاريخ آخر تجديد (I)
-      packageDetails ? packageDetails['السعر'] : 0,   // مبلغ الاشتراك الكلي (J)
-      formData.regPaymentStatus === "تم الدفع" ? (packageDetails ? packageDetails['السعر'] : 0) : 0, // المبلغ المدفوع حتى الآن (K)
-      formData.regPaymentStatus === "تم الدفع" ? 0 : (packageDetails ? packageDetails['السعر'] : 0), // المبلغ المتبقي (L)
-      ""                                              // ملاحظات خاصة بالاشتراك (M)
+      newSubscriptionId,                                // A: Subscription ID
+      newStudentId,                                     // B: Student ID
+      subscriptionType,                                 // ✅ C: نوع الاشتراك
+      packageName,                                      // D: اسم الباقة
+      teacherId,                                        // E: Teacher ID
+      today,                                            // F: تاريخ بداية الاشتراك
+      endDate,                                          // G: تاريخ نهاية الاشتراك المتوقع
+      totalClassesAttended,                             // H: عدد الحصص الحاضرة
+      subscriptionRenewalStatus,                        // I: الحالة التفصيلية للتجديد
+      today,                                            // J: تاريخ آخر تجديد
+      packageDetails ? packageDetails['السعر'] : 0,     // K: المبلغ الكلي
+      formData.regPaymentStatus === "تم الدفع"
+        ? (packageDetails ? packageDetails['السعر'] : 0) : 0, // L: المدفوع
+      formData.regPaymentStatus === "تم الدفع"
+        ? 0 : (packageDetails ? packageDetails['السعر'] : 0), // M: المتبقي
+      ""                                                // N: ملاحظات
     ]);
-    Logger.log(`تم إنشاء اشتراك (${newSubscriptionId}) للطالب ${newStudentId} في شيت 'الاشتراكات الحالية'.`);
+    Logger.log(`✅ تم إنشاء اشتراك (${newSubscriptionId}) للطالب ${newStudentId}.`);
 
-    // 4. حجز المواعيد في شيت "المواعيد المتاحة للمعلمين"
+    // 🕒 حجز المواعيد
     const bookedSlotsToUpdate = [];
-    let bookingTypeForSlot = (formData.regPaymentStatus === "حلقة تجريبية") ? "تجريبي" : "عادي";
+    const bookingTypeForSlot = formData.regPaymentStatus === "حلقة تجريبية" ? "تجريبي" : "عادي";
 
-    // الميعاد الأول
     if (formData.regDay1 && formData.regTime1) {
-        bookedSlotsToUpdate.push({
-            teacherId: teacherId,
-            day: formData.regDay1,
-            timeSlotHeader: formData.regTime1, // رأس العمود (مثل 09:00 - 09:30)
-            studentId: newStudentId,
-            bookingType: bookingTypeForSlot
-        });
+      bookedSlotsToUpdate.push({
+        teacherId,
+        day: formData.regDay1,
+        timeSlotHeader: formData.regTime1,
+        studentId: newStudentId,
+        bookingType: bookingTypeForSlot
+      });
     }
-    // الميعاد الثاني
     if (formData.regDay2 && formData.regTime2) {
-        bookedSlotsToUpdate.push({
-            teacherId: teacherId,
-            day: formData.regDay2,
-            timeSlotHeader: formData.regTime2,
-            studentId: newStudentId,
-            bookingType: bookingTypeForSlot
-        });
+      bookedSlotsToUpdate.push({
+        teacherId,
+        day: formData.regDay2,
+        timeSlotHeader: formData.regTime2,
+        studentId: newStudentId,
+        bookingType: bookingTypeForSlot
+      });
     }
 
     bookedSlotsToUpdate.forEach(slot => {
-        const result = bookTeacherSlot(
-            teachersAvailableSlotsSheet,
-            slot.teacherId,
-            slot.day,
-            slot.timeSlotHeader,
-            slot.studentId,
-            slot.bookingType
-        );
-        if (result.error) {
-            Logger.log(`خطأ في حجز الميعاد ${slot.day} ${slot.timeSlotHeader} للطالب ${newStudentId}: ${result.error}`);
-            // إذا فشل حجز ميعاد، نلغي عملية الحفظ كلها ونرمي خطأ
-            throw new Error(`تعذر حجز الميعاد ${slot.day} ${slot.timeSlotHeader}: ${result.error}`);
-        } else {
-            Logger.log(`تم حجز الميعاد ${slot.day} ${slot.timeSlotHeader} للطالب ${newStudentId}.`);
-        }
+      const result = bookTeacherSlot(
+        teachersAvailableSlotsSheet,
+        slot.teacherId,
+        slot.day,
+        slot.timeSlotHeader,
+        slot.studentId,
+        slot.bookingType
+      );
+      if (result.error) {
+        throw new Error(`تعذر حجز الميعاد ${slot.day} ${slot.timeSlotHeader}: ${result.error}`);
+      } else {
+        Logger.log(`📌 تم حجز الميعاد ${slot.day} ${slot.timeSlotHeader} للطالب ${newStudentId}`);
+      }
     });
 
-    Logger.log("اكتملت عملية حفظ الطالب الجديد بنجاح.");
+    Logger.log("✅ اكتملت عملية حفظ الطالب الجديد بنجاح.");
     return { success: "تم تسجيل الطالب الجديد بنجاح." };
 
   } catch (e) {
-    Logger.log("خطأ في saveData: " + e.message);
+    Logger.log("❌ خطأ في saveData: " + e.message);
     return { error: `فشل تسجيل البيانات: ${e.message}` };
   } finally {
     lock.releaseLock();
@@ -723,17 +704,19 @@ function getAllStudentsData() {
       const studentID = String(row[1] || '').trim(); // العمود B: Student ID في الاشتراكات
       if (studentID) {
         subscriptionsMap.set(studentID, {
-          subscriptionId: String(row[0] || '').trim(), // Subscription ID (A)
-          packageName: String(row[2] || '').trim(),    // اسم الباقة (C)
-          teacherId: String(row[3] || '').trim(),      // Teacher ID (D)
-          startDate: row[4],                         // تاريخ بداية الاشتراك (E)
-          endDate: row[5],                           // تاريخ نهاية الاشتراك المتوقع (F)
-          attendedSessions: row[6],                  // عدد الحصص الحاضرة (G)
-          renewalStatus: String(row[7] || '').trim(), // الحالة التفصيلية للتجديد (H)
-          lastRenewalDate: row[8],                   // تاريخ آخر تجديد (I)
-          totalSubscriptionAmount: row[9],           // مبلغ الاشتراك الكلي (J)
-          paidAmount: row[10],                       // المبلغ المدفوع حتى الآن (K)
-          remainingAmount: row[11]                   // المبلغ المتبقي (L)
+          subscriptionId: String(row[0] || '').trim(),      // A
+          studentId: String(row[1] || '').trim(),           // B
+          subscriptionType: String(row[2] || '').trim(),    // ✅ C: نوع الاشتراك
+          packageName: String(row[3] || '').trim(),         // ✅ D: اسم الباقة
+          teacherId: String(row[4] || '').trim(),           // ✅ E: Teacher ID
+          startDate: row[5],                                // ✅ F
+          endDate: row[6],                                  // ✅ G
+          attendedSessions: row[7],                  // عدد الحصص الحاضرة (G)
+          renewalStatus: String(row[8] || '').trim(), // الحالة التفصيلية للتجديد (H)
+          lastRenewalDate: row[9],                   // تاريخ آخر تجديد (I)
+          totalSubscriptionAmount: row[10],           // مبلغ الاشتراك الكلي (J)
+          paidAmount: row[11],                       // المبلغ المدفوع حتى الآن (K)
+          remainingAmount: row[12]                   // المبلغ المتبقي (L)
         });
       }
     });
@@ -899,147 +882,116 @@ function getDashboardStats() {
   const subscriptionsData = subscriptionsSheet.getDataRange().getValues();
   const teachersData = teachersSheet.getDataRange().getValues();
 
-  // تخطي صفوف العناوين
   const students = studentData.slice(1);
   const subscriptions = subscriptionsData.slice(1);
   const teachers = teachersData.slice(1);
 
   const stats = {
     totalStudents: students.length,
-    registeredStudents: 0,   // الطلاب المشتركين بـ "مشترك"
-    trialStudents: 0,        // الطلاب بحالة "تجريبي"
-    pendingStudents: 0,      // الطلاب بحالة "قيد التسجيل" أو "معلق"
+    registeredStudents: 0,
+    trialStudents: 0,
+    pendingStudents: 0,
     studentsByPackage: {},
     renewalStatus: {
       needsRenewal: 0,
       expired: 0,
       overLimit: 0,
       renewed: 0,
-      trial: 0,              // عدد الطلاب في الحالة التجريبية
-      notSubscribed: 0       // الطلاب بحالة "لم يشترك"
+      trial: 0,
+      notSubscribed: 0
     },
-    studentsByTeacher: {},   // key: Teacher Name, value: count of students
+    studentsByTeacher: {},
     recentlyRegistered: {
       last7Days: 0,
       last30Days: 0
     },
     renewalNextWeek: 0,
-    renewalNextWeekStudents: [] // قائمة بالطلاب الذين يحتاجون للتجديد الأسبوع القادم
+    renewalNextWeekStudents: []
   };
 
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // لتعيين الوقت إلى بداية اليوم لتجنب مشاكل فارق التوقيت في الحسابات
-  
+  today.setHours(0, 0, 0, 0);
   const nextWeek = new Date(today);
   nextWeek.setDate(today.getDate() + 7);
 
-
-  // بناء خريطة لربط Teacher ID باسم المعلم
   const teacherIdToNameMap = new Map();
   teachers.forEach(row => {
-      const teacherId = String(row[0] || '').trim(); // العمود A: Teacher ID
-      const teacherName = String(row[1] || '').trim(); // العمود B: اسم المعلم
-      if (teacherId) {
-          teacherIdToNameMap.set(teacherId, teacherName);
-      }
+    const teacherId = String(row[0] || '').trim();
+    const teacherName = String(row[1] || '').trim();
+    if (teacherId) {
+      teacherIdToNameMap.set(teacherId, teacherName);
+    }
   });
 
-
-  // 1. حساب إحصائيات الطلاب من شيت "الطلاب"
   students.forEach(row => {
-    const registrationDate = row[6]; // العمود G: تاريخ التسجيل
-    const basicStatus = String(row[7] || '').trim(); // العمود H: الحالة الأساسية للطالب
+    const registrationDate = row[6];
+    const basicStatus = String(row[7] || '').trim();
 
-    if (basicStatus === "مشترك") {
-      stats.registeredStudents++;
-    } else if (basicStatus === "تجريبي") {
-      stats.trialStudents++;
-    } else if (basicStatus === "قيد التسجيل" || basicStatus === "معلق") {
-      stats.pendingStudents++;
-    }
+    if (basicStatus === "مشترك") stats.registeredStudents++;
+    else if (basicStatus === "تجريبي") stats.trialStudents++;
+    else if (basicStatus === "قيد التسجيل" || basicStatus === "معلق") stats.pendingStudents++;
 
-    // الطلاب المسجلون حديثًا (بناءً على تاريخ التسجيل)
     if (registrationDate instanceof Date) {
       const regDate = new Date(registrationDate);
-      regDate.setHours(0, 0, 0, 0); 
-      const diffTime = Math.abs(today.getTime() - regDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays <= 7) {
-        stats.recentlyRegistered.last7Days++;
-      }
-      if (diffDays <= 30) {
-        stats.recentlyRegistered.last30Days++;
-      }
+      regDate.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil(Math.abs(today - regDate) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 7) stats.recentlyRegistered.last7Days++;
+      if (diffDays <= 30) stats.recentlyRegistered.last30Days++;
     }
   });
 
-
-  // 2. حساب إحصائيات من شيت "الاشتراكات الحالية"
   subscriptions.forEach(row => {
-    const studentId = String(row[1] || '').trim(); // العمود B: Student ID
-    const packageName = String(row[2] || '').trim(); // العمود C: اسم الباقة
-    const teacherId = String(row[3] || '').trim(); // العمود D: Teacher ID
-    const renewalStatus = String(row[7] || '').trim(); // العمود H: الحالة التفصيلية للتجديد
-    const lastRenewalDate = row[8]; // العمود I: تاريخ آخر تجديد
+    const studentId = String(row[1] || '').trim();            // B
+    const packageName = String(row[3] || '').trim();           // ✅ C→D
+    const teacherId = String(row[4] || '').trim();             // ✅ D→E
+    const renewalStatus = String(row[8] || '').trim();         // ✅ H→I
+    const lastRenewalDate = row[9];                            // ✅ I→J
 
-    if (renewalStatus === "يحتاج للتجديد") {
-      stats.renewalStatus.needsRenewal++;
-    } else if (renewalStatus === "انتهت مدة الاشتراك") {
-      stats.renewalStatus.expired++;
-    } else if (renewalStatus === "تجاوز الحد") {
-      stats.renewalStatus.overLimit++;
-    } else if (renewalStatus === "تم التجديد") {
-      stats.renewalStatus.renewed++;
-    } else if (renewalStatus === "تجريبي") { // حالة تجريبي في الاشتراكات
-        stats.renewalStatus.trial++;
-    } else if (renewalStatus === "لم يشترك") { // حالة لم يشترك في الاشتراكات
-        stats.renewalStatus.notSubscribed++;
-    }
+    if (renewalStatus === "يحتاج للتجديد") stats.renewalStatus.needsRenewal++;
+    else if (renewalStatus === "انتهت مدة الاشتراك") stats.renewalStatus.expired++;
+    else if (renewalStatus === "تجاوز الحد") stats.renewalStatus.overLimit++;
+    else if (renewalStatus === "تم التجديد") stats.renewalStatus.renewed++;
+    else if (renewalStatus === "تجريبي") stats.renewalStatus.trial++;
+    else if (renewalStatus === "لم يشترك") stats.renewalStatus.notSubscribed++;
 
-
-    // الطلاب حسب الباقة
     if (packageName) {
       stats.studentsByPackage[packageName] = (stats.studentsByPackage[packageName] || 0) + 1;
     }
 
-    // الطلاب لكل معلم
     if (teacherId) {
-        const teacherName = teacherIdToNameMap.get(teacherId) || teacherId; // استخدم الاسم
-        if (!stats.studentsByTeacher[teacherName]) {
-            stats.studentsByTeacher[teacherName] = new Set();
-        }
-        stats.studentsByTeacher[teacherName].add(studentId);
+      const teacherName = teacherIdToNameMap.get(teacherId) || teacherId;
+      if (!stats.studentsByTeacher[teacherName]) {
+        stats.studentsByTeacher[teacherName] = new Set();
+      }
+      stats.studentsByTeacher[teacherName].add(studentId);
     }
 
-    // حساب الطلاب الذين يحتاجون للتجديد الأسبوع القادم
-    if (lastRenewalDate instanceof Date && renewalStatus === "تم التجديد") { // فقط الذين هم "تم التجديد" حالياً
+    if (lastRenewalDate instanceof Date && renewalStatus === "تم التجديد") {
       const renewalCheckDate = new Date(lastRenewalDate);
-      renewalCheckDate.setMonth(renewalCheckDate.getMonth() + 1); // بعد شهر من آخر تجديد
+      renewalCheckDate.setMonth(renewalCheckDate.getMonth() + 1);
       renewalCheckDate.setHours(0, 0, 0, 0);
 
       if (renewalCheckDate >= today && renewalCheckDate <= nextWeek) {
         stats.renewalNextWeek++;
-        // جلب اسم الطالب ورقم الهاتف من شيت "الطلاب" (نحتاج أن نبحث عنه)
-        const studentRow = students.find(s => String(s[0]).trim() === studentId); // العمود A هو Student ID
+        const studentRow = students.find(s => String(s[0]).trim() === studentId);
         if (studentRow) {
-            stats.renewalNextWeekStudents.push({
-                name: String(studentRow[1] || '').trim(), // اسم الطالب (B)
-                phone: String(studentRow[3] || '').trim() // رقم الهاتف (D)
-            });
+          stats.renewalNextWeekStudents.push({
+            name: String(studentRow[1] || '').trim(),
+            phone: String(studentRow[3] || '').trim()
+          });
         }
       }
     }
   });
 
-  // تحويل Set إلى عدد صحيح لعدد الطلاب لكل معلم
   for (const teacher in stats.studentsByTeacher) {
-      stats.studentsByTeacher[teacher] = stats.studentsByTeacher[teacher].size;
+    stats.studentsByTeacher[teacher] = stats.studentsByTeacher[teacher].size;
   }
 
   Logger.log("Dashboard Stats: " + JSON.stringify(stats));
   return stats;
 }
+
 
 // ==============================================================================
 // 6. الدوال الخاصة بصفحة سجل الحضور للمعلمين (Teacher Schedule Page)
@@ -1193,7 +1145,7 @@ function getAttendanceStudentsForTeacherAndDay(teacherId, day) {
  */
 function markAttendance(teacherId, studentId, day, timeSlot) {
     const studentsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الطلاب");
-    const trialStudentsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الطلاب التجريبيون"); // شيت الطلاب التجريبيين
+    const trialStudentsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الطلاب التجريبيون");
     const subscriptionsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الاشتراكات الحالية");
     let attendanceLogSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("سجل الحضور");
 
@@ -1202,7 +1154,7 @@ function markAttendance(teacherId, studentId, day, timeSlot) {
         lock.waitLock(30000);
 
         if (!studentsSheet) throw new Error("شيت 'الطلاب' غير موجود.");
-        if (!trialStudentsSheet) throw new Error("شيت 'الطلاب التجريبيون' غير موجود."); // التحقق من وجود الشيت
+        if (!trialStudentsSheet) throw new Error("شيت 'الطلاب التجريبيون' غير موجود.");
         if (!subscriptionsSheet) throw new Error("شيت 'الاشتراكات الحالية' غير موجود.");
 
         if (!attendanceLogSheet) {
@@ -1216,7 +1168,6 @@ function markAttendance(teacherId, studentId, day, timeSlot) {
         const today = new Date();
         const todayFormatted = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyy-MM-dd");
 
-        // التحقق من عدم تسجيل الحضور مسبقًا
         const attendanceLogData = attendanceLogSheet.getDataRange().getValues();
         for (let i = 1; i < attendanceLogData.length; i++) {
             const logRow = attendanceLogData[i];
@@ -1232,44 +1183,41 @@ function markAttendance(teacherId, studentId, day, timeSlot) {
         }
 
         let studentName = '';
-        let isTrialStudent = studentId.startsWith("TRL"); // لتحديد ما إذا كان طالب تجريبي
+        let isTrialStudent = studentId.startsWith("TRL");
         let subscriptionId = '';
         let packageName = '';
         let renewalStatus = '';
         let totalPackageSessions = 0;
         let subscriptionRowIndex = -1;
-        let classType = "عادية"; // افتراضي
+        let classType = "عادية";
 
         if (isTrialStudent) {
-            // جلب اسم الطالب التجريبي
             const trialStudentsData = trialStudentsSheet.getDataRange().getValues();
-            const trialStudentRow = trialStudentsData.find(row => String(row[0] || '').trim() === studentId); // العمود A: Trial ID
+            const trialStudentRow = trialStudentsData.find(row => String(row[0] || '').trim() === studentId);
             if (trialStudentRow) {
-                studentName = String(trialStudentRow[1] || '').trim(); // العمود B: Student Name
-                classType = "تجريبية"; // تحديد نوع الحصة كـ "تجريبية"
+                studentName = String(trialStudentRow[1] || '').trim();
+                classType = "تجريبية";
                 Logger.log(`تسجيل حضور لطالب تجريبي: ${studentName}`);
             } else {
                 throw new Error(`لم يتم العثور على اسم الطالب التجريبي بمعرف ${studentId}.`);
             }
         } else {
-            // جلب اسم الطالب المشترك
             const studentsData = studentsSheet.getDataRange().getValues();
-            const regularStudentRow = studentsData.find(row => String(row[0] || '').trim() === studentId); // العمود A: Student ID
+            const regularStudentRow = studentsData.find(row => String(row[0] || '').trim() === studentId);
             if (regularStudentRow) {
-                studentName = String(regularStudentRow[1] || '').trim(); // العمود B: Student Name
+                studentName = String(regularStudentRow[1] || '').trim();
                 Logger.log(`تسجيل حضور لطالب مشترك: ${studentName}`);
             } else {
                 throw new Error(`لم يتم العثور على اسم الطالب المشترك بمعرف ${studentId}.`);
             }
 
-            // جلب بيانات الاشتراك (فقط للطلاب المشتركين)
             const subscriptionsData = subscriptionsSheet.getDataRange().getValues();
             for (let i = 1; i < subscriptionsData.length; i++) {
-                if (String(subscriptionsData[i][1] || '').trim() === studentId) { // العمود B: Student ID
+                if (String(subscriptionsData[i][1] || '').trim() === studentId) {
                     subscriptionRowIndex = i;
-                    subscriptionId = String(subscriptionsData[i][0] || '').trim();
-                    packageName = String(subscriptionsData[i][2] || '').trim();
-                    renewalStatus = String(subscriptionsData[i][7] || '').trim();
+                    subscriptionId = String(subscriptionsData[i][0] || '').trim();      // A
+                    packageName = String(subscriptionsData[i][3] || '').trim();        // ✅ D بعد الإزاحة
+                    renewalStatus = String(subscriptionsData[i][8] || '').trim();      // ✅ I بعد الإزاحة
                     totalPackageSessions = getTotalSessionsForPackage(packageName);
                     break;
                 }
@@ -1277,41 +1225,36 @@ function markAttendance(teacherId, studentId, day, timeSlot) {
             if (subscriptionRowIndex === -1) throw new Error(`لم يتم العثور على اشتراك للطالب ID ${studentId}.`);
         }
 
-        // تسجيل الحضور في شيت "سجل الحضور"
         const attendanceId = generateUniqueAttendanceId(attendanceLogSheet);
         attendanceLogSheet.appendRow([
-            attendanceId,       // A
-            studentId,          // B
-            teacherId,          // C
-            subscriptionId,     // D (فارغ إذا كان تجريبياً)
-            today,              // E
-            timeSlot,           // F
-            day,                // G
-            "حضر",              // H
-            classType,          // I (تجريبية أو عادية)
-            ""                  // J
+            attendanceId,
+            studentId,
+            teacherId,
+            subscriptionId,
+            today,
+            timeSlot,
+            day,
+            "حضر",
+            classType,
+            ""
         ]);
         Logger.log(`تم تسجيل الحضور لـ ${studentName} (ID: ${studentId}) في ${day} ${timeSlot} كحصة ${classType}.`);
 
-        // تحديث عدد الحصص الحاضرة في شيت "الاشتراكات الحالية" (فقط للحصص العادية)
         if (classType === "عادية") {
-            const currentAttendedSessionsCell = subscriptionsSheet.getRange(subscriptionRowIndex + 1, 7);
+            const currentAttendedSessionsCell = subscriptionsSheet.getRange(subscriptionRowIndex + 1, 8); // ✅ H = col 8
             let currentSessions = currentAttendedSessionsCell.getValue();
             currentSessions = (typeof currentSessions === 'number') ? currentSessions : 0;
-            subscriptionsSheet.getRange(subscriptionRowIndex + 1, 7).setValue(currentSessions + 1);
+            subscriptionsSheet.getRange(subscriptionRowIndex + 1, 8).setValue(currentSessions + 1);
+
             Logger.log(`تم تحديث عدد الحصص الحاضرة للطالب ${studentId} إلى ${currentSessions + 1}.`);
 
             if (totalPackageSessions > 0 && (currentSessions + 1) >= totalPackageSessions) {
-                subscriptionsSheet.getRange(subscriptionRowIndex + 1, 8).setValue("يحتاج للتجديد");
+                subscriptionsSheet.getRange(subscriptionRowIndex + 1, 9).setValue("يحتاج للتجديد"); // ✅ I = col 9
                 Logger.log(`حالة تجديد الطالب ${studentId} تم تحديثها إلى "يحتاج للتجديد".`);
             }
         } else if (classType === "تجريبية") {
-            // يمكن إضافة منطق لتتبع عدد الحصص التجريبية هنا إذا أردت، مثلاً في شيت "الطلاب التجريبيون"
-            // مثال: زيادة عداد "الحصص التجريبية المنتهية" للطالب التجريبي
             const trialStudentRowIndex = trialStudentsSheet.getDataRange().getValues().findIndex(row => String(row[0] || '').trim() === studentId) + 1;
             if (trialStudentRowIndex > 0) {
-                // افتراض وجود عمود مثلاً "Attended Trials" في شيت الطلاب التجريبيين (مثل العمود L)
-                // trialStudentsSheet.getRange(trialStudentRowIndex, 12).setValue((trialStudentsSheet.getRange(trialStudentRowIndex, 12).getValue() || 0) + 1);
                 Logger.log(`تم تسجيل حصة تجريبية للطالب ${studentId}.`);
             }
         }
@@ -1325,6 +1268,7 @@ function markAttendance(teacherId, studentId, day, timeSlot) {
         lock.releaseLock();
     }
 }
+
 
 
 // ==============================================================================
@@ -2031,115 +1975,138 @@ function getStudentsByPhone(phone) {
  * @returns {Object} كائن يحتوي على رسالة نجاح أو خطأ.
  */
 function updateStudentDataWithReassignment(updatedData) {
-  const studentsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الطلاب");
-  const subscriptionsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الاشتراكات الحالية");
-  const teachersAvailableSlotsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("المواعيد المتاحة للمعلمين");
-  const teachersSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("المعلمين");
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const studentsSheet = ss.getSheetByName("الطلاب");
+  const subscriptionsSheet = ss.getSheetByName("الاشتراكات الحالية");
+  const slotsSheet = ss.getSheetByName("المواعيد المتاحة للمعلمين");
+  const teachersSheet = ss.getSheetByName("المعلمين");
 
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
-
-    if (!studentsSheet) throw new Error("شيت 'الطلاب' غير موجود.");
-    if (!subscriptionsSheet) throw new Error("شيت 'الاشتراكات الحالية' غير موجود.");
-    if (!teachersAvailableSlotsSheet) throw new Error("شيت 'المواعيد المتاحة للمعلمين' غير موجود.");
-    if (!teachersSheet) throw new Error("شيت 'المعلمين' غير موجود.");
+    if (!studentsSheet || !subscriptionsSheet || !slotsSheet || !teachersSheet) {
+      throw new Error("تعذر العثور على أحد الشيتات المطلوبة.");
+    }
 
     const studentId = updatedData.studentID;
-    const studentRowInStudentsSheet = updatedData.rowIndex; // صف الطالب في شيت "الطلاب"
-    if (!studentId || !studentRowInStudentsSheet) {
-      throw new Error("بيانات الطالب (Student ID أو رقم الصف) غير كاملة للتحديث.");
+    const studentRowIndex = updatedData.rowIndex;
+    if (!studentId || !studentRowIndex) {
+      throw new Error("الرقم التعريفي للطالب أو رقم الصف غير متوفر.");
     }
 
-    // 1. تحديث بيانات الطالب في شيت "الطلاب"
-    // الأعمدة: Student ID(A), اسم الطالب(B), السن(C), رقم الهاتف(D), رقم هاتف الطالب(E), البلد(F), تاريخ التسجيل(G), الحالة الأساسية للطالب(H), ملاحظات(I)
-    studentsSheet.getRange(studentRowInStudentsSheet, 2).setValue(updatedData.editName); // اسم الطالب (B)
-    studentsSheet.getRange(studentRowInStudentsSheet, 3).setValue(updatedData.editAge);   // السن (C)
-    studentsSheet.getRange(studentRowInStudentsSheet, 4).setValue(updatedData.editPhone); // رقم الهاتف (D) - تم إضافته
-    // يمكن إضافة تحديثات لأعمدة أخرى هنا إذا تم تعديلها في الواجهة
+    // تحديث بيانات الطالب في شيت الطلاب
+    studentsSheet.getRange(studentRowIndex, 2).setValue(updatedData.editName); // الاسم
+    studentsSheet.getRange(studentRowIndex, 3).setValue(updatedData.editAge);  // السن
+    studentsSheet.getRange(studentRowIndex, 4).setValue(updatedData.editPhone); // الهاتف
 
-    // 2. تحديث بيانات الاشتراك في شيت "الاشتراكات الحالية"
-    const currentSubscription = getStudentSubscriptionByStudentId(studentId); // دالة مساعدة
-    if (!currentSubscription) {
-        throw new Error(`لم يتم العثور على اشتراك للطالب ID ${studentId} لتحديثه.`);
+    // الحصول على Teacher ID
+    const teacherId = getTeacherIdByName(updatedData.editTeacher);
+    if (!teacherId) throw new Error(`لم يتم العثور على Teacher ID للمعلم ${updatedData.editTeacher}`);
+
+    // جلب الاشتراك الحالي لهذا الطالب (نستخدم أول اشتراك غير تجريبي بشكل مؤقت)
+    const allSubscriptions = subscriptionsSheet.getDataRange().getValues();
+    const headers = allSubscriptions[0];
+    const studentCol = headers.indexOf("Student ID");
+    const packageCol = headers.indexOf("اسم الباقة");
+    const subscriptionIdCol = headers.indexOf("Subscription ID");
+    const teacherIdCol = headers.indexOf("Teacher ID");
+    const renewalStatusCol = headers.indexOf("الحالة التفصيلية للتجديد");
+
+    let subRowIndex = -1;
+    let subscriptionId = "";
+
+    for (let i = 1; i < allSubscriptions.length; i++) {
+      if (String(allSubscriptions[i][studentCol]).trim() === studentId) {
+        subscriptionId = String(allSubscriptions[i][subscriptionIdCol]).trim();
+        subRowIndex = i + 1; // 1-based
+        break;
+      }
     }
 
-    const subscriptionRowInSheet = currentSubscription.rowIndex;
-    const newTeacherId = getTeacherIdByName(updatedData.editTeacher); // جلب الـ ID من الاسم
-    if (!newTeacherId) {
-        throw new Error(`لم يتم العثور على Teacher ID للمعلم الجديد: ${updatedData.editTeacher}`);
-    }
+    if (!subscriptionId) throw new Error(`لم يتم العثور على اشتراك لهذا الطالب ${studentId}`);
 
-    // الأعمدة: Subscription ID(A), Student ID(B), اسم الباقة(C), Teacher ID(D), تاريخ بداية الاشتراك(E), تاريخ نهاية الاشتراك المتوقع(F), عدد الحصص الحاضرة(G), الحالة التفصيلية للتجديد(H), تاريخ آخر تجديد(I), مبلغ الاشتراك الكلي(J), المبلغ المدفوع حتى الآن(K), المبلغ المتبقي(L), ملاحظات خاصة بالاشتراك(M)
-    subscriptionsSheet.getRange(subscriptionRowInSheet, 3).setValue(updatedData.editSubscriptionPackage); // اسم الباقة (C)
-    subscriptionsSheet.getRange(subscriptionRowInSheet, 4).setValue(newTeacherId);                       // Teacher ID (D)
-    subscriptionsSheet.getRange(subscriptionRowInSheet, 8).setValue(updatedData.editPaymentStatus);      // الحالة التفصيلية للتجديد (H)
+    // تحديث بيانات الاشتراك
+    subscriptionsSheet.getRange(subRowIndex, packageCol + 1).setValue(updatedData.editSubscriptionPackage);
+    subscriptionsSheet.getRange(subRowIndex, teacherIdCol + 1).setValue(teacherId);
+    subscriptionsSheet.getRange(subRowIndex, renewalStatusCol + 1).setValue(updatedData.editPaymentStatus);
 
-    // 3. معالجة إعادة تخصيص المواعيد في شيت "المواعيد المتاحة للمعلمين"
-    // أ. تحرير المواعيد القديمة المحجوزة بواسطة هذا الطالب
-    const oldBookedSlotsByStudent = getBookedSlotsByStudentId(teachersAvailableSlotsSheet, studentId); // دالة مساعدة
-    oldBookedSlotsByStudent.forEach(slot => {
-        const releaseResult = releaseTeacherSlot(
-            teachersAvailableSlotsSheet,
-            slot.teacherId, // المعلم الذي كان الميعاد محجوزاً لديه
-            slot.day,
-            slot.timeSlotHeader,
-            studentId // تأكيد أن الطالب هو من حجز
-        );
-        if (releaseResult.error) {
-            Logger.log(`خطأ في تحرير الميعاد القديم ${slot.day} ${slot.timeSlotHeader} للطالب ${studentId}: ${releaseResult.error}`);
-            // يمكن الاستمرار أو رمي خطأ بناءً على مدى أهمية تحرير المواعيد القديمة
-        }
+    // تحرير المواعيد القديمة الخاصة بالـ Subscription ID
+    const oldSlots = getBookedSlotsBySubscriptionId(slotsSheet, subscriptionId);
+    oldSlots.forEach(slot => {
+      releaseTeacherSlot(slotsSheet, slot.teacherId, slot.day, slot.timeSlotHeader, subscriptionId);
     });
 
-    // ب. حجز المواعيد الجديدة
-    const newBookedSlotsToAssign = [];
-    let bookingType = (updatedData.editPaymentStatus === "تجريبي") ? "تجريبي" : "عادي"; // نوع الحجز بناءً على حالة التجديد
-
+    // إضافة المواعيد الجديدة
+    const newSlots = [];
     if (updatedData.editDay1 && updatedData.editTime1) {
-        newBookedSlotsToAssign.push({
-            teacherId: newTeacherId, // المعلم الجديد
-            day: updatedData.editDay1,
-            timeSlotHeader: updatedData.editTime1,
-            studentId: studentId,
-            bookingType: bookingType
-        });
+      newSlots.push({ day: updatedData.editDay1, time: updatedData.editTime1 });
     }
     if (updatedData.editDay2 && updatedData.editTime2) {
-        newBookedSlotsToAssign.push({
-            teacherId: newTeacherId, // المعلم الجديد
-            day: updatedData.editDay2,
-            timeSlotHeader: updatedData.editTime2,
-            studentId: studentId,
-            bookingType: bookingType
-        });
+      newSlots.push({ day: updatedData.editDay2, time: updatedData.editTime2 });
     }
 
-    newBookedSlotsToAssign.forEach(slot => {
-        const bookResult = bookTeacherSlot( // إعادة استخدام دالة bookTeacherSlot
-            teachersAvailableSlotsSheet,
-            slot.teacherId,
-            slot.day,
-            slot.timeSlotHeader,
-            slot.studentId,
-            slot.bookingType
-        );
-        if (bookResult.error) {
-            Logger.log(`خطأ في حجز الميعاد الجديد ${slot.day} ${slot.timeSlotHeader} للطالب ${studentId}: ${bookResult.error}`);
-            throw new Error(`تعذر حجز الميعاد الجديد ${slot.day} ${slot.timeSlotHeader}: ${bookResult.error}`);
-        }
+    const bookingType = updatedData.editPaymentStatus === "تجريبي" ? "تجريبي" : "عادي";
+
+    newSlots.forEach(slot => {
+      const result = bookTeacherSlot(slotsSheet, teacherId, slot.day, slot.time, subscriptionId, bookingType);
+      if (result.error) throw new Error(`تعذر حجز الميعاد: ${slot.day} ${slot.time} - ${result.error}`);
     });
 
-    Logger.log(`تم تحديث بيانات الطالب ${studentId} وإعادة تخصيص المواعيد بنجاح.`);
+    Logger.log(`تم تحديث بيانات الطالب ${studentId} والمواعيد بنجاح.`);
     return { success: "تم حفظ التعديلات بنجاح." };
 
   } catch (e) {
     Logger.log("خطأ في updateStudentDataWithReassignment: " + e.message);
-    return { error: `فشل حفظ التعديلات: ${e.message}` };
+    return { error: e.message };
   } finally {
     lock.releaseLock();
   }
 }
+
+
+
+/**
+ * تسترجع كل المواعيد المحجوزة المرتبطة بـ Subscription ID معيّن من شيت "المواعيد المتاحة للمعلمين".
+ *
+ * @param {Sheet} slotsSheet - شيت "المواعيد المتاحة للمعلمين".
+ * @param {string} subscriptionId - معرف الاشتراك المراد البحث عنه.
+ * @returns {Array<Object>} قائمة المواعيد المحجوزة (teacherId, day, timeSlotHeader, bookingType).
+ */
+function getBookedSlotsBySubscriptionId(slotsSheet, subscriptionId) {
+  const allData = slotsSheet.getDataRange().getValues();
+  const headers = allData[0];
+  const results = [];
+
+  for (let rowIndex = 1; rowIndex < allData.length; rowIndex++) {
+    const row = allData[rowIndex];
+    const teacherId = String(row[0] || '').trim(); // العمود A
+    const day = String(row[1] || '').trim();       // العمود B
+
+    for (let colIndex = 2; colIndex < row.length; colIndex++) {
+      const cellValue = String(row[colIndex] || '').trim();
+      
+      if (cellValue) {
+        // دعم صيغة: SUB1234 - نور بيان أو SUB5678 - عادي
+        const [cellSubscriptionId, type] = cellValue.split(' - ').map(s => s.trim());
+
+        if (cellSubscriptionId === subscriptionId) {
+          const timeSlotHeader = headers[colIndex];
+          const bookingType = type || "عادي"; // افتراضي لو مش محدد
+          results.push({
+            teacherId: teacherId,
+            day: day,
+            timeSlotHeader: timeSlotHeader,
+            bookingType: bookingType
+          });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+
 
 /**
  * دالة مساعدة: تجلب تفاصيل اشتراك طالب واحد من شيت "الاشتراكات الحالية".
@@ -2156,14 +2123,16 @@ function getStudentSubscriptionByStudentId(studentId) {
             return {
                 rowIndex: i + 1, // الصف في الشيت (1-based)
                 subscriptionId: String(data[i][0] || '').trim(), // العمود A
-                packageName: String(data[i][2] || '').trim(),    // العمود C
-                teacherId: String(data[i][3] || '').trim(),      // العمود D
-                // ... يمكن إضافة باقي تفاصيل الاشتراك هنا إذا لزم الأمر
+                subscriptionType: String(data[i][2] || '').trim(), // ✅ العمود C (نوع الاشتراك)
+                packageName: String(data[i][3] || '').trim(),      // ✅ العمود D (اسم الباقة)
+                teacherId: String(data[i][4] || '').trim(),        // ✅ العمود E (Teacher ID)
+                // ... يمكن إضافة باقي الأعمدة حسب الحاجة
             };
         }
     }
     return null;
 }
+
 
 /**
  * دالة مساعدة: تجلب جميع المواعيد المحجوزة بواسطة طالب معين من شيت "المواعيد المتاحة للمعلمين".
@@ -2360,6 +2329,7 @@ function deleteStudentAndArchive(studentInfo) {
  */
 function saveTrialData(formData) {
   const trialStudentsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الطلاب التجريبيون");
+  const subscriptionsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الاشتراكات الحالية");
   const teachersAvailableSlotsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("المواعيد المتاحة للمعلمين");
   const teachersSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("المعلمين");
 
@@ -2368,50 +2338,67 @@ function saveTrialData(formData) {
     lock.waitLock(30000);
 
     if (!trialStudentsSheet) throw new Error("لم يتم العثور على شيت 'الطلاب التجريبيون'.");
+    if (!subscriptionsSheet) throw new Error("لم يتم العثور على شيت 'الاشتراكات الحالية'.");
     if (!teachersAvailableSlotsSheet) throw new Error("لم يتم العثور على شيت 'المواعيد المتاحة للمعلمين'.");
     if (!teachersSheet) throw new Error("لم يتم العثور على شيت 'المعلمين'.");
 
     // 1. جلب Teacher ID من اسم المعلم
-    const teacherId = getTeacherIdByName(formData.trialRegTeacher); // دالة مساعدة موجودة
+    const teacherId = getTeacherIdByName(formData.trialRegTeacher);
     if (!teacherId) throw new Error(`لم يتم العثور على Teacher ID للمعلم: ${formData.trialRegTeacher}`);
-    const teacherName = getTeacherNameById(teacherId); // دالة مساعدة موجودة
+    const teacherName = getTeacherNameById(teacherId);
 
-    // 2. حفظ الطالب في شيت "الطلاب التجريبيون"
-    const newTrialId = generateUniqueTrialId(trialStudentsSheet); // دالة جديدة
+    // 2. إنشاء Trial ID
+    const newTrialId = generateUniqueTrialId(trialStudentsSheet);
     const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
 
-    // الأعمدة في شيت "الطلاب التجريبيون": Trial ID, Student Name, Age, Phone Number, Teacher ID, Teacher Name, Day, Time, Registration Date, Notes, Status
+    // 3. إضافة الطالب في شيت "الطلاب التجريبيون"
     trialStudentsSheet.appendRow([
-      newTrialId,             // Trial ID (A)
-      formData.trialRegName,  // Student Name (B)
-      formData.trialRegAge,   // Age (C)
-      String(formData.trialRegPhone).trim(), // Phone Number (D)
-      teacherId,              // Teacher ID (E)
-      teacherName,            // Teacher Name (F)
-      formData.trialRegDay1,  // Day (G)
-      formData.trialRegTime1, // Time (H)
-      today,                  // Registration Date (I)
-      "",                     // Notes (J)
-      "تجريبي"                // Status (K)
+      newTrialId,             // A: Trial ID
+      formData.trialRegName,  // B: الاسم
+      formData.trialRegAge,   // C: السن
+      String(formData.trialRegPhone).trim(), // D: الهاتف
+      teacherId,              // E
+      teacherName,            // F
+      formData.trialRegDay1,  // G
+      formData.trialRegTime1, // H
+      today,                  // I: تاريخ التسجيل
+      "",                     // J: ملاحظات
+      "تجريبي"               // K: الحالة
     ]);
-    Logger.log(`تم حفظ الطالب التجريبي ${formData.trialRegName} (ID: ${newTrialId}) في شيت 'الطلاب التجريبيون'.`);
+    Logger.log(`تم حفظ الطالب التجريبي ${formData.trialRegName} (${newTrialId}) في 'الطلاب التجريبيون'.`);
 
-    // 3. حجز الميعاد في شيت "المواعيد المتاحة للمعلمين"
-    // نستخدم ID الطالب التجريبي لتمييز الحجز
-    const bookingTypeForSlot = "تجريبي";
+    // 4. إضافة اشتراك تجريبي في شيت "الاشتراكات الحالية"
+    const newSubscriptionId = generateUniqueSubscriptionId(subscriptionsSheet);
+
+    subscriptionsSheet.appendRow([
+      newSubscriptionId,     // A: Subscription ID
+      newTrialId,            // B: Student ID (نستخدم Trial ID)
+      "تجريبي",              // ✅ C: نوع الاشتراك
+      "",                    // D: اسم الباقة (فارغ لأنه تجريبي)
+      teacherId,             // E
+      today,                 // F: تاريخ البداية
+      "",                    // G: تاريخ نهاية الاشتراك المتوقع
+      0,                     // H: عدد الحصص الحاضرة
+      "تجريبي",              // I: حالة التجديد
+      today,                 // J: تاريخ آخر تجديد
+      0,                     // K: السعر الكلي
+      0,                     // L: المدفوع
+      0,                     // M: المتبقي
+      "طالب تجريبي"          // N: ملاحظات
+    ]);
+    Logger.log(`تم إنشاء اشتراك تجريبي (${newSubscriptionId}) للطالب ${newTrialId}.`);
+
+    // 5. حجز الميعاد
     const result = bookTeacherSlot(
-        teachersAvailableSlotsSheet,
-        teacherId,
-        formData.trialRegDay1,
-        formData.trialRegTime1,
-        newTrialId, // استخدم Trial ID هنا
-        bookingTypeForSlot
+      teachersAvailableSlotsSheet,
+      teacherId,
+      formData.trialRegDay1,
+      formData.trialRegTime1,
+      newTrialId,
+      "تجريبي"
     );
     if (result.error) {
-        Logger.log(`خطأ في حجز الميعاد ${formData.trialRegDay1} ${formData.trialRegTime1} للطالب التجريبي ${newTrialId}: ${result.error}`);
-        throw new Error(`تعذر حجز الميعاد التجريبي ${formData.trialRegDay1} ${formData.trialRegTime1}: ${result.error}`);
-    } else {
-        Logger.log(`تم حجز الميعاد ${formData.trialRegDay1} ${formData.trialRegTime1} للطالب التجريبي ${newTrialId}.`);
+      throw new Error(`تعذر حجز الميعاد: ${result.error}`);
     }
 
     Logger.log("اكتملت عملية حفظ الطالب التجريبي بنجاح.");
@@ -4081,4 +4068,58 @@ function updateSubscriptionsTeacherId() {
   } finally {
     lock.releaseLock();
   }
+}
+
+
+
+
+function convertStudentIdToSubscriptionId() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const slotsSheet = ss.getSheetByName("المواعيد المتاحة للمعلمين");
+  const subscriptionsSheet = ss.getSheetByName("الاشتراكات الحالية");
+
+  if (!slotsSheet || !subscriptionsSheet) {
+    Logger.log("Sheet not found!");
+    return;
+  }
+
+  // اقرأ بيانات الاشتراكات كـ مصفوفة
+  const subsData = subscriptionsSheet.getDataRange().getValues();
+  const subsHeaders = subsData[0];
+  const subsRows = subsData.slice(1);
+
+  const studentIdIndex = subsHeaders.indexOf("Student ID");
+  const subscriptionIdIndex = subsHeaders.indexOf("Subscription ID");
+
+  // أنشئ Map للربط بين Student ID و Subscription ID (أول اشتراك فقط)
+  const studentToSubMap = {};
+  for (let row of subsRows) {
+    const studentId = row[studentIdIndex];
+    const subId = row[subscriptionIdIndex];
+    if (studentId && subId && !studentToSubMap[studentId]) {
+      studentToSubMap[studentId] = subId;
+    }
+  }
+
+  // اقرأ جدول المواعيد
+  const slotsData = slotsSheet.getDataRange().getValues();
+
+  // افترض أن الأعمدة الأولى 2 (المعلم واليوم) وباقي الأعمدة مواعيد
+  const updatedData = slotsData.map((row, rowIndex) => {
+    return row.map((cell, colIndex) => {
+      // فقط من العمود الثالث فصاعدًا
+      if (rowIndex === 0 || colIndex < 2) return cell;
+
+      // لو القيمة Student ID موجود في Map → نستبدله بـ Subscription ID
+      if (typeof cell === "string" && studentToSubMap[cell]) {
+        return studentToSubMap[cell];
+      }
+      return cell;
+    });
+  });
+
+  // كتابة البيانات المعدلة
+  slotsSheet.getRange(1, 1, updatedData.length, updatedData[0].length).setValues(updatedData);
+
+  Logger.log("تم استبدال Student IDs بـ Subscription IDs بنجاح 🎉");
 }
