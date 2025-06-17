@@ -1,4 +1,153 @@
 /**
+ * تسجيل حضور بناءً على Subscription ID أو استنتاجه من بيانات الطالب.
+ *
+ * @param {string} subscriptionId - معرف الاشتراك (إن توفر).
+ * @param {string} studentId - معرف الطالب.
+ * @param {string} teacherId - معرف المعلم.
+ * @param {string} day - اليوم.
+ * @param {string} timeSlot - وقت الحصة.
+ * @returns {Object} - كائن يحتوي على نتيجة التنفيذ (نجاح أو خطأ).
+ */
+function markAttendance(subscriptionId, studentId, teacherId, day, timeSlot) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const subscriptionsSheet = ss.getSheetByName("الاشتراكات الحالية");
+  const studentsSheet = ss.getSheetByName("الطلاب");
+  const attendanceLogSheet = ss.getSheetByName("سجل الحضور") || ss.insertSheet("سجل الحضور");
+
+  const subscriptionsData = subscriptionsSheet.getDataRange().getValues();
+  let subscriptionRow = -1;
+  let subscriptionType = "";
+  let packageName = "";
+  let classType = "عادية";
+
+  if (!subscriptionId) {
+    // محاولة استنتاج الاشتراك المناسب
+    for (let i = 1; i < subscriptionsData.length; i++) {
+      if (String(subscriptionsData[i][1]).trim() === studentId &&
+          String(subscriptionsData[i][4]).trim() === teacherId) {
+        subscriptionId = String(subscriptionsData[i][0]).trim();
+        subscriptionRow = i;
+        subscriptionType = String(subscriptionsData[i][2]).trim();
+        packageName = String(subscriptionsData[i][3]).trim();
+        classType = subscriptionType === "نور بيان" ? "نور بيان" : "عادية";
+        break;
+      }
+    }
+    if (subscriptionRow === -1) return { error: "لم يتم العثور على اشتراك مناسب لهذا الطالب." };
+  } else {
+    for (let i = 1; i < subscriptionsData.length; i++) {
+      if (String(subscriptionsData[i][0]).trim() === subscriptionId) {
+        subscriptionRow = i;
+        studentId = String(subscriptionsData[i][1]).trim();
+        subscriptionType = String(subscriptionsData[i][2]).trim();
+        packageName = String(subscriptionsData[i][3]).trim();
+        classType = subscriptionType === "نور بيان" ? "نور بيان" : "عادية";
+        break;
+      }
+    }
+    if (subscriptionRow === -1) return { error: "الاشتراك غير موجود." };
+  }
+
+  const studentName = (studentsSheet.getDataRange().getValues().find(row => String(row[0]).trim() === studentId) || [])[1] || "";
+
+  const today = new Date();
+  const todayStr = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyy-MM-dd");
+
+  // التأكد من عدم تكرار الحضور
+  const existingLogs = attendanceLogSheet.getDataRange().getValues();
+  for (let i = 1; i < existingLogs.length; i++) {
+    const row = existingLogs[i];
+    const logSubId = String(row[3]).trim();
+    const logDate = Utilities.formatDate(new Date(row[4]), Session.getScriptTimeZone(), "yyyy-MM-dd");
+    if (logSubId === subscriptionId && logDate === todayStr && String(row[5]).trim() === timeSlot) {
+      return { error: "تم تسجيل الحضور مسبقًا." };
+    }
+  }
+
+  const attendanceId = "ATT" + new Date().getTime();
+  attendanceLogSheet.appendRow([
+    attendanceId,
+    studentId,
+    teacherId,
+    subscriptionId,
+    today,
+    timeSlot,
+    day,
+    "حضر",
+    classType,
+    ""
+  ]);
+
+  // تحديث عدد الحصص في الاشتراك
+  const attendedCell = subscriptionsSheet.getRange(subscriptionRow + 1, 8);
+  const attended = Number(attendedCell.getValue()) || 0;
+  attendedCell.setValue(attended + 1);
+
+  return { success: "تم تسجيل الحضور بنجاح." };
+}
+
+/**
+ * حجز موعد للطالب باستخدام Subscription ID + نوع الاشتراك.
+ *
+ * @param {string} teacherSheet - شيت المعلم (Sheet object)
+ * @param {string} subscriptionId - معرف الاشتراك
+ * @param {string} classType - نوع الاشتراك (مثال: "نور بيان" أو "عادي")
+ * @param {string} day - اليوم
+ * @param {string} time - توقيت الحصة
+ * @returns {Object} - نتيجة العملية
+ */
+function bookTeacherSlot(teacherSheet, subscriptionId, classType, day, time) {
+  const data = teacherSheet.getDataRange().getValues();
+  const headers = data[0];
+  const timeColumnIndex = headers.indexOf(time);
+  if (timeColumnIndex === -1) return { error: "لم يتم العثور على التوقيت داخل جدول المعلم." };
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === day) {
+      const cell = teacherSheet.getRange(i + 1, timeColumnIndex + 1);
+      const currentValue = String(cell.getValue()).trim();
+      if (currentValue !== "") {
+        return { error: "هذا الموعد محجوز مسبقًا." };
+      } else {
+        cell.setValue(subscriptionId + " - " + classType);
+        return { success: "تم الحجز بنجاح للموعد." };
+      }
+    }
+  }
+  return { error: "لم يتم العثور على اليوم المحدد داخل جدول المعلم." };
+}
+
+/**
+ * دالة مساعدة: تبحث في قائمة اشتراكات الطالب وتختار الاشتراك الأنسب بناءً على Teacher ID أو نوع الاشتراك.
+ *
+ * @param {Array<Object>} subscriptions - قائمة اشتراكات الطالب (ناتج getStudentSubscriptionsByStudentId).
+ * @param {Object} options - خيارات الفلترة: {teacherId: "...", subscriptionType: "..."}
+ * @returns {Object|null} - الاشتراك المطابق أو null إن لم يوجد.
+ */
+function getMatchingSubscription(subscriptions, options) {
+  const { teacherId, subscriptionType } = options;
+
+  // الأولوية: تطابق المعلم والنوع معًا
+  let exactMatch = subscriptions.find(sub =>
+    (!teacherId || sub.teacherId === teacherId) &&
+    (!subscriptionType || sub.subscriptionType === subscriptionType)
+  );
+
+  if (exactMatch) return exactMatch;
+
+  // لو مفيش تطابق تام، نحاول نطابق النوع فقط
+  if (subscriptionType) {
+    const typeMatch = subscriptions.find(sub => sub.subscriptionType === subscriptionType);
+    if (typeMatch) return typeMatch;
+  }
+
+  // لو مفيش ولا واحد، نرجّع أول اشتراك
+  return subscriptions.length > 0 ? subscriptions[0] : null;
+}
+
+
+
+/**
  * هذا الملف يحتوي على دوال App Script لنظام إدارة أكاديمية غيث.
  * تم بناء الكود ليتوافق مع هيكلة الشيتات الجديدة.
  */
@@ -2006,11 +2155,11 @@ function updateStudentDataWithReassignment(updatedData) {
     // جلب الاشتراك الحالي لهذا الطالب (نستخدم أول اشتراك غير تجريبي بشكل مؤقت)
     const allSubscriptions = subscriptionsSheet.getDataRange().getValues();
     const headers = allSubscriptions[0];
-    const studentCol = headers.indexOf("Student ID");
-    const packageCol = headers.indexOf("اسم الباقة");
-    const subscriptionIdCol = headers.indexOf("Subscription ID");
-    const teacherIdCol = headers.indexOf("Teacher ID");
-    const renewalStatusCol = headers.indexOf("الحالة التفصيلية للتجديد");
+    const studentCol = 2;
+    const packageCol = 4;
+    const subscriptionIdCol = 1;
+    const teacherIdCol = 5;
+    const renewalStatusCol = 9;
 
     let subRowIndex = -1;
     let subscriptionId = "";
@@ -2062,6 +2211,176 @@ function updateStudentDataWithReassignment(updatedData) {
     lock.releaseLock();
   }
 }
+
+
+
+
+/**
+ * تسترجع كل المواعيد المحجوزة المرتبطة بـ Subscription ID معيّن من شيت "المواعيد المتاحة للمعلمين".
+ *
+ * @param {Sheet} slotsSheet - شيت "المواعيد المتاحة للمعلمين".
+ * @param {string} subscriptionId - معرف الاشتراك المراد البحث عنه.
+ * @returns {Array<Object>} قائمة المواعيد المحجوزة (teacherId, day, timeSlotHeader, bookingType).
+ */
+function getBookedSlotsBySubscriptionId(slotsSheet, subscriptionId) {
+  const allData = slotsSheet.getDataRange().getValues();
+  const headers = allData[0];
+  const results = [];
+
+  for (let rowIndex = 1; rowIndex < allData.length; rowIndex++) {
+    const row = allData[rowIndex];
+    const teacherId = String(row[0] || '').trim(); // العمود A
+    const day = String(row[1] || '').trim();       // العمود B
+
+    for (let colIndex = 2; colIndex < row.length; colIndex++) {
+      const cellValue = String(row[colIndex] || '').trim();
+      
+      if (cellValue) {
+        // دعم صيغة: SUB1234 - نور بيان أو SUB5678 - عادي
+        const [cellSubscriptionId, type] = cellValue.split(' - ').map(s => s.trim());
+
+        if (cellSubscriptionId === subscriptionId) {
+          const timeSlotHeader = headers[colIndex];
+          const bookingType = type || "عادي"; // افتراضي لو مش محدد
+          results.push({
+            teacherId: teacherId,
+            day: day,
+            timeSlotHeader: timeSlotHeader,
+            bookingType: bookingType
+          });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+
+
+/**
+ * دالة مساعدة: تجلب تفاصيل اشتراك طالب واحد من شيت "الاشتراكات الحالية".
+ * @param {string} studentId - Student ID للطالب.
+ * @returns {Object|null} كائن الاشتراك أو null.
+ */
+function getStudentSubscriptionByStudentId(studentId) {
+    const subscriptionsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الاشتراكات الحالية");
+    if (!subscriptionsSheet) return null;
+
+    const data = subscriptionsSheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+        if (String(data[i][1] || '').trim() === String(studentId).trim()) { // العمود B: Student ID
+            return {
+                rowIndex: i + 1, // الصف في الشيت (1-based)
+                subscriptionId: String(data[i][0] || '').trim(), // العمود A
+                subscriptionType: String(data[i][2] || '').trim(), // ✅ العمود C (نوع الاشتراك)
+                packageName: String(data[i][3] || '').trim(),      // ✅ العمود D (اسم الباقة)
+                teacherId: String(data[i][4] || '').trim(),        // ✅ العمود E (Teacher ID)
+                // ... يمكن إضافة باقي الأعمدة حسب الحاجة
+            };
+        }
+    }
+    return null;
+}
+
+
+/**
+ * دالة مساعدة: تجلب جميع المواعيد المحجوزة بواسطة طالب معين من شيت "المواعيد المتاحة للمعلمين".
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - شيت "المواعيد المتاحة للمعلمين".
+ * @param {string} studentId - Student ID للطالب.
+ * @returns {Array<Object>} مصفوفة من المواعيد المحجوزة.
+ */
+function getBookedSlotsByStudentId(sheet, studentId) {
+    const bookedSlots = [];
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const timeSlotColIndexes = [];
+    const startColIndexForSlots = 2; // العمود C
+    for (let i = startColIndexForSlots; i < headers.length; i++) {
+        const header = String(headers[i] || '').trim();
+        if (header) {
+            timeSlotColIndexes.push(i);
+        }
+    }
+
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const teacherId = String(row[0] || '').trim(); // العمود A: Teacher ID
+        const dayOfWeek = String(row[1] || '').trim(); // العمود B: اليوم
+
+        timeSlotColIndexes.forEach(colIndex => {
+            const slotValue = String(row[colIndex] || '').trim();
+            const timeSlotHeader = headers[colIndex];
+
+            // إذا كانت الخلية تحتوي على Student ID لهذا الطالب
+            if (slotValue === studentId) {
+                bookedSlots.push({
+                    teacherId: teacherId,
+                    day: dayOfWeek,
+                    timeSlotHeader: timeSlotHeader,
+                    rowIndex: i + 1, // رقم الصف في شيت المواعيد المتاحة (1-based)
+                    colIndex: colIndex + 1 // رقم العمود في شيت المواعيد المتاحة (1-based)
+                });
+            }
+        });
+    }
+    return bookedSlots;
+}
+
+/**
+ * دالة مساعدة: تحرر موعداً (تجعل الخلية فارغة) في شيت "المواعيد المتاحة للمعلمين".
+ * تستخدم في تحرير المواعيد القديمة عند التعديل أو الحذف.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - شيت "المواعيد المتاحة للمعلمين".
+ * @param {string} teacherId - Teacher ID للمعلم.
+ * @param {string} day - اليوم.
+ * @param {string} timeSlotHeader - رأس الميعاد.
+ * @param {string} expectedStudentId - الـ Student ID الذي يجب أن يكون في الخلية (للتأكيد).
+ * @returns {Object} رسالة نجاح أو خطأ.
+ */
+
+
+
+/**
+ * دالة تحرر موعداً في شيت "المواعيد المتاحة للمعلمين" بناءً على Subscription ID + نوع الاشتراك.
+ */
+function releaseTeacherSlot(sheet, teacherId, day, timeSlotHeader, expectedSubscriptionId, classType) {
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  let teacherRowIndex = -1;
+  let timeSlotColIndex = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (
+      String(data[i][0] || '').trim() === String(teacherId).trim() &&
+      String(data[i][1] || '').trim() === String(day).trim()
+    ) {
+      teacherRowIndex = i;
+      break;
+    }
+  }
+  if (teacherRowIndex === -1) return { error: `لم يتم العثور على صف المعلم/اليوم لتحرير الميعاد: ${teacherId}, ${day}` };
+  for (let i = 2; i < headers.length; i++) {
+    if (String(headers[i] || '').trim() === String(timeSlotHeader).trim()) {
+      timeSlotColIndex = i;
+      break;
+    }
+  }
+  if (timeSlotColIndex === -1) return { error: `لم يتم العثور على عمود الميعاد لتحريره: ${timeSlotHeader}` };
+  const targetCell = sheet.getRange(teacherRowIndex + 1, timeSlotColIndex + 1);
+  const currentCellValue = String(targetCell.getValue() || '').trim();
+  const expectedValue = `${expectedSubscriptionId} - ${classType}`;
+  if (currentCellValue === expectedValue) {
+    targetCell.setValue(timeSlotHeader);
+    Logger.log(`✅ تم تحرير الميعاد ${day} ${timeSlotHeader} للمعلم ${teacherId} من الاشتراك ${expectedSubscriptionId}.`);
+    return { success: 'تم تحرير الميعاد بنجاح.' };
+  } else {
+    Logger.log(`⚠️ الميعاد ${day} ${timeSlotHeader} للمعلم ${teacherId} ليس محجوزاً بالاشتراك المطلوب (القيمة الحالية: ${currentCellValue}).`);
+    return { error: 'الميعاد ليس محجوزاً بهذا الاشتراك أو تم تغييره.' };
+  }
+}
+
+
+
 
 
 
@@ -2390,13 +2709,14 @@ function saveTrialData(formData) {
 
     // 5. حجز الميعاد
     const result = bookTeacherSlot(
-      teachersAvailableSlotsSheet,
-      teacherId,
-      formData.trialRegDay1,
-      formData.trialRegTime1,
-      newTrialId,
-      "تجريبي"
-    );
+  teachersAvailableSlotsSheet,
+  teacherId,
+  formData.trialRegDay1,
+  formData.trialRegTime1,
+  newSubscriptionId,
+  "تجريبي"
+);
+
     if (result.error) {
       throw new Error(`تعذر حجز الميعاد: ${result.error}`);
     }
@@ -4122,4 +4442,113 @@ function convertStudentIdToSubscriptionId() {
   slotsSheet.getRange(1, 1, updatedData.length, updatedData[0].length).setValues(updatedData);
 
   Logger.log("تم استبدال Student IDs بـ Subscription IDs بنجاح 🎉");
+}
+
+/**
+ * تسجيل حضور بناءً على Subscription ID أو استنتاجه من بيانات الطالب.
+ *
+ * @param {string} subscriptionId - معرف الاشتراك (إن توفر).
+ * @param {string} studentId - معرف الطالب.
+ * @param {string} teacherId - معرف المعلم.
+ * @param {string} day - اليوم.
+ * @param {string} timeSlot - وقت الحصة.
+ * @returns {Object} - كائن يحتوي على نتيجة التنفيذ (نجاح أو خطأ).
+ */
+function markAttendance(subscriptionId, studentId, teacherId, day, timeSlot) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const subscriptionsSheet = ss.getSheetByName("الاشتراكات الحالية");
+  const studentsSheet = ss.getSheetByName("الطلاب");
+  const attendanceLogSheet = ss.getSheetByName("سجل الحضور") || ss.insertSheet("سجل الحضور");
+
+  const subscriptionsData = subscriptionsSheet.getDataRange().getValues();
+  let subscriptionRow = -1;
+  let subscriptionType = "";
+  let packageName = "";
+  let classType = "عادية";
+
+  if (!subscriptionId) {
+    // محاولة استنتاج الاشتراك المناسب
+    for (let i = 1; i < subscriptionsData.length; i++) {
+      if (String(subscriptionsData[i][1]).trim() === studentId &&
+          String(subscriptionsData[i][4]).trim() === teacherId) {
+        subscriptionId = String(subscriptionsData[i][0]).trim();
+        subscriptionRow = i;
+        subscriptionType = String(subscriptionsData[i][2]).trim();
+        packageName = String(subscriptionsData[i][3]).trim();
+        classType = subscriptionType === "نور بيان" ? "نور بيان" : "عادية";
+        break;
+      }
+    }
+    if (subscriptionRow === -1) return { error: "لم يتم العثور على اشتراك مناسب لهذا الطالب." };
+  } else {
+    for (let i = 1; i < subscriptionsData.length; i++) {
+      if (String(subscriptionsData[i][0]).trim() === subscriptionId) {
+        subscriptionRow = i;
+        studentId = String(subscriptionsData[i][1]).trim();
+        subscriptionType = String(subscriptionsData[i][2]).trim();
+        packageName = String(subscriptionsData[i][3]).trim();
+        classType = subscriptionType === "نور بيان" ? "نور بيان" : "عادية";
+        break;
+      }
+    }
+    if (subscriptionRow === -1) return { error: "الاشتراك غير موجود." };
+  }
+
+  const studentName = (studentsSheet.getDataRange().getValues().find(row => String(row[0]).trim() === studentId) || [])[1] || "";
+
+  const today = new Date();
+  const todayStr = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyy-MM-dd");
+
+  // التأكد من عدم تكرار الحضور
+  const existingLogs = attendanceLogSheet.getDataRange().getValues();
+  for (let i = 1; i < existingLogs.length; i++) {
+    const row = existingLogs[i];
+    const logSubId = String(row[3]).trim();
+    const logDate = Utilities.formatDate(new Date(row[4]), Session.getScriptTimeZone(), "yyyy-MM-dd");
+    if (logSubId === subscriptionId && logDate === todayStr && String(row[5]).trim() === timeSlot) {
+      return { error: "تم تسجيل الحضور مسبقًا." };
+    }
+  }
+
+  const attendanceId = "ATT" + new Date().getTime();
+  attendanceLogSheet.appendRow([
+    attendanceId,
+    studentId,
+    teacherId,
+    subscriptionId,
+    today,
+    timeSlot,
+    day,
+    "حضر",
+    classType,
+    ""
+  ]);
+
+  // تحديث عدد الحصص في الاشتراك
+  const attendedCell = subscriptionsSheet.getRange(subscriptionRow + 1, 8);
+  const attended = Number(attendedCell.getValue()) || 0;
+  attendedCell.setValue(attended + 1);
+
+  return { success: "تم تسجيل الحضور بنجاح." };
+}
+
+
+function getStudentSubscriptionsByStudentId(studentId) {
+  const subscriptionsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("الاشتراكات الحالية");
+  if (!subscriptionsSheet) return [];
+  const data = subscriptionsSheet.getDataRange().getValues();
+  const subscriptions = [];
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][1] || '').trim() === String(studentId).trim()) {
+      subscriptions.push({
+        rowIndex: i + 1,
+        subscriptionId: String(data[i][0] || '').trim(),
+        subscriptionType: String(data[i][2] || '').trim(),
+        packageName: String(data[i][3] || '').trim(),
+        teacherId: String(data[i][4] || '').trim(),
+        fullRow: data[i]
+      });
+    }
+  }
+  return subscriptions;
 }
