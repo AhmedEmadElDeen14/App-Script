@@ -1351,21 +1351,25 @@
     <h2><i class="fas fa-user-plus"></i> نموذج تسجيل البيانات</h2>
 
     <form id="dataForm" class="styled-form-box">
+      <!-- الاسم -->
       <div class="form-group">
         <label for="regName">اسم الطالب:</label>
         <input type="text" id="regName" placeholder="أدخل اسم الطالب" required>
       </div>
 
+      <!-- السن -->
       <div class="form-group">
         <label for="regAge">السن:</label>
         <input type="number" id="regAge" placeholder="أدخل السن" required>
       </div>
 
+      <!-- الهاتف -->
       <div class="form-group">
         <label for="regPhone">رقم الهاتف:</label>
         <input type="tel" id="regPhone" placeholder="أدخل رقم الهاتف" required>
       </div>
 
+      <!-- المعلم -->
       <div class="form-group">
         <label for="regTeacher">المعلم:</label>
         <select id="regTeacher" onchange="updateRegDays()" required>
@@ -1373,6 +1377,7 @@
         </select>
       </div>
 
+      <!-- الميعاد الأول -->
       <div class="form-row">
         <div class="column-50">
           <label for="regDay1">اليوم الأول:</label>
@@ -1388,6 +1393,7 @@
         </div>
       </div>
 
+      <!-- الميعاد الثاني (اختياري) -->
       <div class="form-row">
         <div class="column-50">
           <label for="regDay2">اليوم الثاني:</label>
@@ -1403,6 +1409,7 @@
         </div>
       </div>
 
+      <!-- حالة الدفع والباقة -->
       <div class="form-row">
         <div class="column-50">
           <label for="regPaymentStatus">حالة الدفع:</label>
@@ -1418,16 +1425,30 @@
         </div>
       </div>
 
+      <!-- ✅ نوع الاشتراك -->
+      <div class="form-group">
+        <label for="regSubscriptionType">نوع الاشتراك:</label>
+        <select id="regSubscriptionType" required>
+          <option value="" disabled selected>اختر نوع الاشتراك</option>
+          <option value="عادي">عادي</option>
+          <option value="نور بيان">نور بيان</option>
+          <option value="تجريبي">تجريبي</option>
+        </select>
+      </div>
+
+      <!-- الأزرار -->
       <div class="form-group buttons">
-        <button type="button" class="button primary" onclick="submitData()">
+        <button id="submitMainButton" type="button" class="button primary" onclick="submitData()">
           <i class="fas fa-save"></i> تسجيل البيانات
         </button>
+
         <button type="button" class="button back-button" onclick="showPage('main-page')">
           <i class="fas fa-arrow-right"></i> العودة للصفحة الرئيسية
         </button>
       </div>
     </form>
   </div>
+
 
 
   <div id="trial-form-page" class="page-section">
@@ -1501,9 +1522,19 @@
 
     <!-- 📝 نموذج تعديل البيانات -->
     <div id="studentForm" class="hidden styled-form-box">
+
+      <!-- 🆔 عرض Student ID -->
       <div class="form-group">
         <label for="editStudentId">Student ID:</label>
         <input type="text" id="editStudentId" disabled>
+      </div>
+
+      <!-- 🔄 اختيار الاشتراك النشط -->
+      <div class="form-group">
+        <label for="editSubscriptionSelect">اختر الاشتراك:</label>
+        <select id="editSubscriptionSelect" onchange="loadSubscriptionForEdit()">
+          <!-- يتم تعبئته بالدوال (نوع الاشتراك – الباقة – Subscription ID) -->
+        </select>
       </div>
 
       <div class="form-group">
@@ -1526,6 +1557,7 @@
         <select id="editTeacher" onchange="updateEditDays()"></select>
       </div>
 
+      <!-- المواعيد -->
       <div class="form-row">
         <div class="column-50">
           <label>اليوم الأول (الحالي):</label>
@@ -1580,6 +1612,7 @@
         <select id="editSubscriptionPackage"></select>
       </div>
 
+      <!-- أزرار التحكم -->
       <div class="form-group buttons">
         <button class="button primary" onclick="updateStudentData()">
           <i class="fas fa-save"></i> حفظ التعديلات
@@ -1593,6 +1626,7 @@
       </div>
     </div>
   </div>
+
 
 
   <div id="all-students-page" class="page-section">
@@ -1657,8 +1691,7 @@
             <th onclick="filterAndSortStudents('remainingSessions')">الحصص المتبقية <i class="fas fa-sort"></i></th>
             <th onclick="filterAndSortStudents('renewalStatus')">حالة التجديد <i class="fas fa-sort"></i></th>
             <th onclick="filterAndSortStudents('registrationDate')">تاريخ التسجيل <i class="fas fa-sort"></i></th>
-            <th onclick="filterAndSortStudents('day1')">الميعاد الأول <i class="fas fa-sort"></i></th>
-            <th onclick="filterAndSortStudents('day2')">الميعاد الثاني <i class="fas fa-sort"></i></th>
+            <th onclick="filterAndSortStudents('appointments')">المواعيد <i class="fas fa-sort"></i></th>
             <th>الإجراءات</th>
           </tr>
         </thead>
@@ -2130,6 +2163,8 @@
     let studentData = {}; // بيانات الطالب المحملة في صفحة التعديل (edit-student-page)
     let allStudentsRawData = []; // تخزين جميع بيانات الطلاب لفلترتها وفرزها (all-students-page)
     let archivedStudentsRawData = []; // تخزين جميع بيانات الطلاب المؤرشفين (archive-page)
+    let subscriptionsList = []; // قائمة الاشتراكات الخاصة بالطالب (للتعديل)
+
 
     let currentTeacherName = ''; // لصفحة حضور المعلمين
     let currentDay = ''; // لصفحة حضور المعلمين (يتم حسابه عند تحميل الصفحة)
@@ -2336,16 +2371,45 @@
     }
 
 
+   
+
+
     // ************************************ //
     //          دوال خاصة بـ form-page      //
     // ************************************ //
     function loadFormDependencies() {
-      document.getElementById('dataForm').reset(); // إعادة تهيئة النموذج
-      loadTeachersOptions('regTeacher'); // تحميل المعلمين في نموذج التسجيل
-      loadPaymentStatusOptions('regPaymentStatus'); // تحميل حالات الدفع
-      loadSubscriptionPackagesOptions('regSubscriptionPackage'); // تحميل الباقات
-      updateRegDays(); // إعادة ضبط الأيام والمواعيد
+      document.getElementById('dataForm').reset();
+      loadTeachersOptions('regTeacher');
+      loadPaymentStatusOptions('regPaymentStatus');
+      loadSubscriptionPackagesOptions('regSubscriptionPackage');
+      loadSubscriptionTypeOptions('regSubscriptionType'); // ✅
+      updateRegDays();
     }
+
+    /**
+ * تحميل قائمة أنواع الاشتراك (فردي، جماعي، نور بيان...) في صفحة form-page.
+ * @param {string} selectId - ID الخاص بعنصر <select> لنوع الاشتراك.
+ */
+function loadSubscriptionTypeOptions(selectId) {
+  const subscriptionTypeSelect = document.getElementById(selectId);
+  subscriptionTypeSelect.innerHTML = '<option value="" disabled selected>اختر نوع الاشتراك</option>';
+
+  const types = [
+    "فردي صغار",
+    "فردي كبار",
+    "جماعي",
+    "نور بيان"
+  ];
+
+  types.forEach(type => {
+    const option = document.createElement('option');
+    option.value = type;
+    option.textContent = type;
+    subscriptionTypeSelect.appendChild(option);
+  });
+}
+
+
 
     /**
      * تحميل قائمة المعلمين المتاحين لـ form-page
@@ -2465,77 +2529,75 @@
     }
 
     /**
- * إرسال بيانات نموذج التسجيل إلى Code.gs لحفظها.
- */
-function submitData() {
-  const name = document.getElementById('regName').value.trim();
-  const age = document.getElementById('regAge').value.trim();
-  const phone = document.getElementById('regPhone').value.trim();
-  const teacher = document.getElementById('regTeacher').value;
-  const day1 = document.getElementById('regDay1').value;
-  const time1 = document.getElementById('regTime1').value;
-  const paymentStatus = document.getElementById('regPaymentStatus').value;
-  const subscriptionPackage = document.getElementById('regSubscriptionPackage').value;
-  const subscriptionType = document.getElementById('regSubscriptionType').value;
+     * إرسال بيانات نموذج التسجيل إلى Code.gs لحفظها.
+     */
+    function submitData() {
+      const name = document.getElementById('regName').value.trim();
+      const age = document.getElementById('regAge').value.trim();
+      const phone = document.getElementById('regPhone').value.trim();
+      const teacher = document.getElementById('regTeacher').value;
+      const day1 = document.getElementById('regDay1').value;
+      const time1 = document.getElementById('regTime1').value;
+      const paymentStatus = document.getElementById('regPaymentStatus').value;
+      const subscriptionPackage = document.getElementById('regSubscriptionPackage').value;
 
-  if (!name || !age || !phone || !teacher || !day1 || !time1 || !paymentStatus || !subscriptionPackage || !subscriptionType) {
-    showToast("الرجاء ملء جميع الحقول المطلوبة.", 'error');
-    return;
-  }
-
-  // التحقق من اليوم الثاني والميعاد الثاني
-  const day2 = document.getElementById('regDay2').value;
-  const time2 = document.getElementById('regTime2').value;
-
-  if (day2 && !time2) {
-    showToast("الرجاء اختيار الميعاد الثاني أو إزالة اليوم الثاني.", 'error');
-    return;
-  }
-  if (!day2 && time2) {
-    showToast("الرجاء اختيار اليوم الثاني أو إزالة الميعاد الثاني.", 'error');
-    return;
-  }
-
-  const formData = {
-    regName: name,
-    regAge: age,
-    regPhone: phone,
-    regTeacher: teacher,
-    regDay1: day1,
-    regTime1: time1,
-    regDay2: day2,
-    regTime2: time2,
-    regPaymentStatus: paymentStatus,
-    regSubscriptionPackage: subscriptionPackage,
-    subscriptionType: subscriptionType   // ✅ تمت إضافته هنا
-  };
-
-  const submitButton = document.querySelector('#form-page .button-primary');
-  submitButton.disabled = true;
-  submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جارٍ التسجيل...';
-
-  google.script.run
-    .withSuccessHandler(response => {
-      submitButton.disabled = false;
-      submitButton.innerHTML = '<i class="fas fa-save"></i> تسجيل البيانات';
-
-      if (response.success) {
-        showToast('تم تسجيل البيانات بنجاح!', 'success');
-        document.getElementById('dataForm').reset();
-        loadFormDependencies(); // إعادة تحميل المعلمين والباقات
-        showPage('main-page');
-      } else if (response.error) {
-        showToast('خطأ في تسجيل البيانات: ' + response.error, 'error');
+      if (!name || !age || !phone || !teacher || !day1 || !time1 || !paymentStatus || !subscriptionPackage) {
+        showToast("الرجاء ملء جميع الحقول المطلوبة.", 'error');
+        return;
       }
-    })
-    .withFailureHandler(error => {
-      submitButton.disabled = false;
-      submitButton.innerHTML = '<i class="fas fa-save"></i> تسجيل البيانات';
-      showToast('حدث خطأ غير متوقع: ' + error.message, 'error');
-      console.error("Error submitting data:", error);
-    })
-    .saveData(formData); // ترسل البيانات إلى دالة Code.gs
-}
+
+      // التحقق من أن اليوم الثاني والميعاد الثاني، إذا تم اختيار اليوم، يجب اختيار الميعاد أيضاً.
+      const day2 = document.getElementById('regDay2').value;
+      const time2 = document.getElementById('regTime2').value;
+
+      if (day2 && !time2) {
+        showToast("الرجاء اختيار الميعاد الثاني أو إزالة اليوم الثاني.", 'error');
+        return;
+      }
+      if (!day2 && time2) {
+        showToast("الرجاء اختيار اليوم الثاني أو إزالة الميعاد الثاني.", 'error');
+        return;
+      }
+
+      const formData = {
+        regName: name,
+        regAge: age,
+        regPhone: phone,
+        regTeacher: teacher,
+        regDay1: day1,
+        regTime1: time1,
+        regDay2: day2, // يمكن أن يكون فارغاً
+        regTime2: time2, // يمكن أن يكون فارغاً
+        regPaymentStatus: paymentStatus,
+        regSubscriptionPackage: subscriptionPackage
+      };
+
+      const submitButton = event.target.closest('button');
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جارٍ التسجيل...';
+
+      google.script.run
+        .withSuccessHandler(response => {
+          submitButton.disabled = false;
+          submitButton.innerHTML = '<i class="fas fa-save"></i> تسجيل البيانات';
+
+          if (response.success) {
+            showToast('تم تسجيل البيانات بنجاح!', 'success');
+            document.getElementById('dataForm').reset();
+            loadFormDependencies(); // إعادة تهيئة النموذج
+            showPage('main-page'); // العودة للصفحة الرئيسية
+          } else if (response.error) {
+            showToast('خطأ في تسجيل البيانات: ' + response.error, 'error');
+          }
+        })
+        .withFailureHandler(error => {
+          submitButton.disabled = false;
+          submitButton.innerHTML = '<i class="fas fa-save"></i> تسجيل البيانات';
+          showToast('حدث خطأ غير متوقع: ' + error.message, 'error');
+          console.error("Error submitting data:", error);
+        })
+        .saveData(formData); // دالة في Code.gs
+    }
 
 
     // ************************************ //
@@ -2695,44 +2757,59 @@ function submitData() {
     }
 
     /**
-     * عرض البيانات المفلترة والمفرزة في جدول صفحة "كل الطلاب".
-     * @param {Array<Object>} students - مصفوفة الطلاب المراد عرضها.
-     */
+ * عرض البيانات المفلترة والمفرزة في جدول صفحة "كل الطلاب".
+ * @param {Array<Object>} students - مصفوفة الطلاب المراد عرضها.
+ */
     function displayAllStudentsData(students) {
       const tableBody = document.querySelector('#allStudentsTable tbody');
       tableBody.innerHTML = '';
 
       if (students.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="12" class="no-data-message">لا توجد بيانات مطابقة لمعايير البحث/التصفية.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="11" class="no-data-message">لا توجد بيانات مطابقة لمعايير البحث/التصفية.</td></tr>';
         return;
       }
 
       students.forEach(student => {
         const row = document.createElement('tr');
+
+        // إعداد قائمة المواعيد (أياً كان عددها)
+        const appointments = [];
+        for (let i = 1; i <= 4; i++) {
+          const day = student[`day${i}`];
+          const time = student[`time${i}`];
+          if (day && time) {
+            appointments.push(`${day} (${formatTime12Hour(time)})`);
+          } else if (day) {
+            appointments.push(`${day}`);
+          }
+        }
+
         row.innerHTML = `
-                <td>${student.name || ''}</td>
-                <td>${student.studentID || ''}</td>
-                <td>${student.phone || ''}</td>
-                <td>${student.teacherName || ''}</td>
-                <td>${student.packageName || ''}</td>
-                <td>${student.attendedSessions || 0}</td>
-                <td>${student.remainingSessions !== undefined ? student.remainingSessions : 'N/A'}</td>
-                <td>${student.renewalStatus || ''}</td>
-                <td>${student.registrationDate || ''}</td>
-                <td>${student.day1 ? `${student.day1} (${formatTime12Hour(student.time1)})` : ''}</td>
-                <td>${student.day2 ? `${student.day2} (${formatTime12Hour(student.time2)})` : ''}</td>
-                <td>
-                  <button class="table-action-button" onclick="editStudent('STUDENT_ID')">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="table-action-button delete" onclick="deleteStudent('STUDENT_ID')">
-                    <i class="fas fa-trash-alt"></i>
-                  </button>
-                </td>
-            `;
+      <td>${student.name || ''}</td>
+      <td>${student.studentID || ''}</td>
+      <td>${student.phone || ''}</td>
+      <td>${student.teacherName || ''}</td>
+      <td>${student.packageName || ''}</td>
+      <td>${student.attendedSessions || 0}</td>
+      <td>${student.remainingSessions !== undefined ? student.remainingSessions : 'N/A'}</td>
+      <td>${student.renewalStatus || ''}</td>
+      <td>${student.registrationDate || ''}</td>
+      <td>${appointments.join('<br>')}</td>
+      <td>
+        <button class="table-action-button" onclick="editStudent('${student.studentID}')">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button class="table-action-button delete" onclick="deleteStudent('${student.studentID}')">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+      </td>
+    `;
+
         tableBody.appendChild(row);
       });
     }
+
+
 
     /**
      * للتحرير من صفحة "كل الطلاب" (ستوجه لصفحة التعديل).
@@ -2777,12 +2854,6 @@ function submitData() {
           .deleteStudentAndArchive({ studentID: studentID, rowIndex: rowIndex }); // إرسال بيانات كافية للحذف
       }
     }
-
-
-    // ... (المتغيرات العالمية والدوال العامة مثل showPage, showToast, convertTo24HourFormat, getTimeInMinutes, formatTime12Hour) ...
-    // ... (دوال خاصة بـ form-page) ...
-    // ... (دوال خاصة بـ all-students-page) ...
-    // ... (بقية الدوال الأخرى في index.html، مثل dashboard-page، teacher-schedule-page، manage-slots-page، archive-page) ...
 
 
     // ************************************ //
@@ -4108,7 +4179,8 @@ function submitData() {
         trialRegPhone: phone,
         trialRegTeacher: teacher,
         trialRegDay1: day1,
-        trialRegTime1: time1
+        trialRegTime1: time1,
+        subscriptionType: "تجريبي" // ✅ ضروري للربط الصحيح
       };
 
       const submitButton = document.querySelector('#trial-form-page .button-primary');
