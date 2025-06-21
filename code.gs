@@ -14,7 +14,7 @@
 function doGet(e) {
   // عرض ملف index.html الرئيسي فقط
   return HtmlService.createHtmlOutputFromFile('index.html')
-      .setTitle('نظام إدارة أكاديمية رفاق'); // عنوان يظهر في تبويبة المتصفح
+      .setTitle('نظام إدارة أكاديمية غيث'); // عنوان يظهر في تبويبة المتصفح
 }
 
 /**
