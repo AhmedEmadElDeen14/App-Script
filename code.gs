@@ -1870,11 +1870,11 @@ function reactivateStudentFromArchive(studentID) {
     const studentRow = [
       row[0] || '', // Student ID
       row[1] || '', // الاسم
-      row[2] || '', // السن
-      row[3] || '', // رقم الهاتف (ولي الأمر)
-      row[4] || '', // رقم هاتف الطالب
-      row[5] || '', // البلد
-      row[6] || '', // تاريخ التسجيل
+       '', // السن
+      row[2] || '', // رقم الهاتف (ولي الأمر)
+      '', // رقم هاتف الطالب
+       '', // البلد
+      row[5] || '', // تاريخ التسجيل
       "معلق",       // الحالة
       row[8] || ''  // الملاحظات
     ];
@@ -4462,4 +4462,296 @@ function migratePaymentRecordsOnly() {
   } finally {
     lock.releaseLock();
   }
+}
+
+
+/**
+ * تسجل حلقة احتياطية لمرة واحدة لمعلم بديل في شيت "المواعيد المتاحة للمعلمين"
+ * من خلال وضع القيمة "p studentId" في الخلية المناسبة.
+ *
+ * @param {string} studentId - رقم الطالب
+ * @param {string} studentName - اسم الطالب
+ * @param {string} backupTeacherId - معرّف المعلم البديل
+ * @param {string} day - اليوم (مثال: "الأحد")
+ * @param {string} timeSlot - ميعاد الحصة (مثال: "5:00 مساءً")
+ * @returns {Object} - رسالة نجاح أو خطأ
+ */
+function assignBackupSession(studentId, studentName, backupTeacherId, day, timeSlot) {
+  try {
+    const sheet = SpreadsheetApp.getActive().getSheetByName("المواعيد المتاحة للمعلمين");
+    if (!sheet) throw new Error("شيت المواعيد غير موجود");
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const dayColIndex = headers.indexOf(day);
+    if (dayColIndex === -1) throw new Error(`لم يتم العثور على العمود المناسب لليوم: ${day}`);
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const teacherIdInRow = String(row[0] || "").trim(); // العمود A
+      const timeSlotInRow = String(row[1] || "").trim();  // العمود B
+
+      if (teacherIdInRow === backupTeacherId && timeSlotInRow === timeSlot) {
+        const cellValue = String(row[dayColIndex] || "").trim();
+
+        if (cellValue && !cellValue.startsWith("p")) {
+          return { error: "هذا الميعاد غير متاح، أو محجوز بالفعل." };
+        }
+
+        // 🟢 تسجيل الحلقة الاحتياطية
+        sheet.getRange(i + 1, dayColIndex + 1).setValue("p " + studentId);
+        return { success: `تم تسجيل الحلقة الاحتياطية بنجاح مع المعلم في ${day} الساعة ${timeSlot}` };
+      }
+    }
+
+    return { error: "لم يتم العثور على صف مناسب لهذا المعلم والميعاد." };
+
+  } catch (err) {
+    return { error: "حدث خطأ أثناء تسجيل الحلقة الاحتياطية: " + err.message };
+  }
+}
+
+
+
+
+
+/**
+ * تُستخدم لتحميل بيانات نموذج الحلقة الاحتياطية في واجهة المشرف.
+ * تُعيد قائمة الطلاب و المواعيد المتاحة.
+ */
+function getBackupFormOptions() {
+  const ss = SpreadsheetApp.openById("11jAQXDKzwV--h7sNkvESm0dvNcRNk36Z3IenOtLIdsY");
+  const studentsSheet = ss.getSheetByName("الطلاب");
+  const slotsSheet = ss.getSheetByName("المواعيد المتاحة للمعلمين");
+
+  const studentsData = studentsSheet.getDataRange().getValues();
+  const students = studentsData.slice(1).map(row => ({
+    id: row[0]?.toString().trim(),
+    name: row[1]?.toString().trim()
+  }));
+
+  const headers = slotsSheet.getDataRange().getValues()[0];
+  const timeSlots = headers.slice(2).filter(Boolean); // الأعمدة بعد العمودين الأولين
+
+  return { students, timeSlots };
+}
+
+
+
+function getAllStudentsForReserveFeature(teacherId) {
+  const allStudents = getAllStudentsForTeacher(teacherId);
+  return Array.isArray(allStudents) ? allStudents : [];
+}
+
+
+/**
+ * تجلب بيانات جميع الطلاب (المشتركين والتجريبيين) المرتبطين بمعلم محدد.
+ * تُستخدم لصفحة "طلابي ومواعيدهم" في واجهة المعلم.
+ *
+ * @param {string} teacherId - Teacher ID للمعلم المراد جلب طلابه.
+ * @returns {Array<Object>} مصفوفة من كائنات الطلاب الموحدة.
+ * أو {Object} كائن خطأ.
+ */
+function getAllStudentsForTeacher(teacherId) {
+  const supervisorSpreadsheet = SpreadsheetApp.openById("11jAQXDKzwV--h7sNkvESm0dvNcRNk36Z3IenOtLIdsY");
+  const studentsSheet = supervisorSpreadsheet.getSheetByName("الطلاب");
+  const subscriptionsSheet = supervisorSpreadsheet.getSheetByName("الاشتراكات الحالية");
+  const teachersAvailableSlotsSheet = supervisorSpreadsheet.getSheetByName("المواعيد المتاحة للمعلمين");
+  const trialStudentsSheet = supervisorSpreadsheet.getSheetByName("الطلاب التجريبيون");
+
+  if (!studentsSheet) return { error: "شيت 'الطلاب' غير موجود في ملف المشرف." };
+  if (!subscriptionsSheet) return { error: "شيت 'الاشتراكات الحالية' غير موجود في ملف المشرف." };
+  if (!teachersAvailableSlotsSheet) return { error: "شيت 'المواعيد المتاحة للمعلمين' غير موجود في ملف المشرف." };
+  if (!trialStudentsSheet) return { error: "شيت 'الطلاب التجريبيون' غير موجود في ملف المشرف." };
+
+  const allTeacherStudents = [];
+
+  // جلب بيانات المواعيد المحجوزة لكل طالب (Student ID/Trial ID -> [{day, timeSlotHeader}])
+  const studentBookedSlotsMap = new Map();
+  const availableSlotsValues = teachersAvailableSlotsSheet.getDataRange().getValues();
+  const headers = availableSlotsValues[0];
+  const timeSlotHeaders = [];
+  const startColIndexForSlots = 2;
+  for (let i = startColIndexForSlots; i < headers.length; i++) {
+      const header = String(headers[i] || '').trim();
+      if (header) {
+          timeSlotHeaders.push({ index: i, header: header });
+      }
+  }
+
+  for (let i = 1; i < availableSlotsValues.length; i++) {
+      const row = availableSlotsValues[i];
+      const teacherIdInSlot = String(row[0] || '').trim();
+      const dayOfWeek = String(row[1] || '').trim();
+
+      if (teacherIdInSlot === teacherId) { // فقط المواعيد الخاصة بهذا المعلم
+          timeSlotHeaders.forEach(colInfo => {
+              const slotValue = String(row[colInfo.index] || '').trim();
+              const timeSlotHeader = colInfo.header;
+
+              if (slotValue.startsWith("STD") || slotValue.startsWith("TRL") || slotValue.startsWith("p ")) {
+                  const studentIdInCell = slotValue;
+                  if (!studentBookedSlotsMap.has(studentIdInCell)) {
+                      studentBookedSlotsMap.set(studentIdInCell, []);
+                  }
+                  studentBookedSlotsMap.get(studentIdInCell).push({
+                      day: dayOfWeek,
+                      timeSlotHeader: timeSlotHeader,
+                      teacherId: teacherIdInSlot
+                  });
+              }
+          });
+      }
+  }
+
+  // جلب بيانات الطلاب (ID -> Name) من كلا الشيتين في ملف المشرف
+  const studentIdToNameMap = new Map();
+  studentsSheet.getDataRange().getValues().forEach(row => {
+    const id = String(row[0] || '').trim();
+    const name = String(row[1] || '').trim();
+    const phone = String(row[3] || '').trim(); // جلب رقم الهاتف
+    const basicStatus = String(row[7] || '').trim(); // جلب الحالة الأساسية
+    if (id) studentIdToNameMap.set(id, { name: name, phone: phone, basicStatus: basicStatus });
+  });
+  trialStudentsSheet.getDataRange().getValues().forEach(row => {
+    const id = String(row[0] || '').trim();
+    const name = String(row[1] || '').trim();
+    const phone = String(row[3] || '').trim(); // جلب رقم الهاتف
+    const basicStatus = String(row[10] || '').trim(); // الحالة من عمود Status في شيت التجريبيين
+    if (id) studentIdToNameMap.set(id, { name: name, phone: phone, basicStatus: basicStatus });
+  });
+
+  // جلب بيانات الاشتراكات (Student ID -> Subscription Details)
+  const subscriptionsMap = new Map();
+  const subscriptionsData = subscriptionsSheet.getDataRange().getValues();
+  subscriptionsData.forEach((row, index) => {
+    if (index === 0) return;
+    const studentID = String(row[1] || '').trim();
+    const subTeacherId = String(row[3] || '').trim(); // Teacher ID في الاشتراك
+    if (studentID && subTeacherId === teacherId) { // فقط الاشتراكات لهذا المعلم
+      subscriptionsMap.set(studentID, {
+        packageName: String(row[2] || '').trim(),
+        renewalStatus: String(row[7] || '').trim(),
+        // يمكن إضافة المزيد من تفاصيل الاشتراك هنا حسب الحاجة
+      });
+    }
+  });
+
+
+  // 1. معالجة الطلاب المشتركين لهذا المعلم
+  studentIdToNameMap.forEach((studentDetails, studentID) => {
+    if (studentID.startsWith("STD")) { // فقط الطلاب المشتركين (وليس التجريبيين)
+      const subscriptionDetails = subscriptionsMap.get(studentID);
+      if (subscriptionDetails) { // إذا كان الطالب مشتركًا لهذا المعلم
+        const studentInfo = {
+          studentID: studentID,
+          name: studentDetails.name,
+          age: null, // لا يتم جلبه من هنا، يمكن جلبه من شيت الطلاب إذا لزم الأمر
+          phone: studentDetails.phone,
+          basicStatus: studentDetails.basicStatus, // الحالة الأساسية
+          packageName: subscriptionDetails.packageName,
+          renewalStatus: subscriptionDetails.renewalStatus,
+        };
+
+        const bookedSlots = studentBookedSlotsMap.get(studentID) || [];
+        
+        // التعديل: إضافة مصفوفة بجميع المواعيد المحجوزة
+        studentInfo.allBookedScheduleSlots = bookedSlots.map(slot => ({
+            day: slot.day,
+            time: slot.timeSlotHeader
+        })).sort((a,b) => {
+            const daysOrder = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            const dayAIndex = daysOrder.indexOf(a.day);
+            const dayBIndex = daysOrder.indexOf(b.day);
+            if (dayAIndex !== dayBIndex) return dayAIndex - dayBIndex;
+            return getTimeInMinutes(a.time) - getTimeInMinutes(b.time);
+        });
+        
+        allTeacherStudents.push(studentInfo);
+      }
+    } else if (studentID.startsWith("TRL")) { // الطلاب التجريبيون
+        const trialStudentRawData = trialStudentsSheet.getDataRange().getValues();
+        const trialRow = trialStudentRawData.find(r => String(r[0] || '').trim() === studentID);
+        if (trialRow && String(trialRow[4] || '').trim() === teacherId) { // التأكد أنه لهذا المعلم
+          const trialStudentInfo = {
+              studentID: trialID, // هنا هو الـ Trial ID
+              name: studentDetails.name,
+              age: trialRow[2], // السن من شيت الطلاب التجريبيين
+              phone: studentDetails.phone,
+              basicStatus: studentDetails.basicStatus,
+              packageName: 'تجريبي',
+              renewalStatus: 'تجريبي',
+          };
+          trialStudentInfo.allBookedScheduleSlots = [];
+          if (String(trialRow[6] || '').trim() && String(trialRow[7] || '').trim()) {
+              trialStudentInfo.allBookedScheduleSlots.push({
+                  day: String(trialRow[6] || '').trim(), // اليوم الأول
+                  time: String(trialRow[7] || '').trim() // الميعاد الأول
+              });
+          }
+          allTeacherStudents.push(trialStudentInfo);
+        }
+    }
+  });
+
+  // --- معالجة الحلقات الاحتياطية لهذا المعلم ---
+const backupSessionsSheet = supervisorSpreadsheet.getSheetByName("الحلقات الاحتياطية");
+if (backupSessionsSheet) {
+  const backupData = backupSessionsSheet.getDataRange().getValues();
+  const todayName = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"][new Date().getDay()];
+  
+  backupData.forEach((row, index) => {
+    if (index === 0) return; // تجاهل العناوين
+    const [studentID, day, time, subject, mainTeacherId, backupTeacherId, status] = row.map(v => String(v).trim());
+    if (backupTeacherId === teacherId && day === todayName && !status) {
+      const studentDetails = studentIdToNameMap.get(studentID);
+      if (studentDetails) {
+        const studentInfo = {
+          studentID: studentID,
+          name: studentDetails.name,
+          age: null,
+          phone: studentDetails.phone,
+          basicStatus: studentDetails.basicStatus || '',
+          packageName: 'احتياطي',
+          renewalStatus: 'احتياطي',
+          isBackup: true
+        };
+        studentInfo.allBookedScheduleSlots = [{ day, time }];
+        allTeacherStudents.push(studentInfo);
+      }
+    }
+  });
+}
+
+
+  Logger.log(`تم جلب ${allTeacherStudents.length} طالب للمعلم ID ${teacherId}.`);
+  return allTeacherStudents;
+}
+
+
+/**
+ * تجلب قائمة بجميع المعلمين من شيت "المعلمين" مع المعرف والاسم.
+ * @returns {Array<Object>} قائمة تحتوي على كل معلم ككائن {id, name}
+ */
+function getAllTeachersWithIds() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("المعلمين");
+  if (!sheet) {
+    Logger.log("❌ خطأ: لم يتم العثور على شيت 'المعلمين'.");
+    return [];
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const teachers = [];
+
+  for (let i = 1; i < data.length; i++) { // تخطي العنوان
+    const id = String(data[i][0] || '').trim();   // العمود A = ID
+    const name = String(data[i][1] || '').trim(); // العمود B = الاسم
+
+    if (id && name) {
+      teachers.push({ id, name });
+    }
+  }
+
+  Logger.log("✅ قائمة المعلمين بالمعرفات: " + JSON.stringify(teachers));
+  return teachers;
 }
