@@ -1179,6 +1179,11 @@
                     class="fas fa-chart-line"></i> لوحة التحكم</button>
             <button class="main-button nav-button register" onclick="showPage('form-page', loadFormDependencies)"><i
                     class="fas fa-user-plus"></i> تسجيل طالب جديد</button>
+            <button class="main-button nav-button reserve-temp-slot"
+                onclick="showPage('reserve-temporary-slot-page', loadReserveTemporarySlotDependencies)">
+                <i class="fas fa-user-clock"></i> تسجيل حلقة احتياطي
+            </button>
+
             <button class="main-button nav-button trial-register"
                 onclick="showPage('trial-form-page', loadTrialFormDependencies)"><i class="fas fa-user-friends"></i>
                 تسجيل طالب
@@ -1415,6 +1420,31 @@
             </div>
         </form>
     </div>
+
+
+    <div id="reserve-temporary-slot-page" class="page-section">
+        <h2><i class="fas fa-user-clock"></i> تسجيل حلقة احتياطي لطالب</h2>
+
+        <form id="reserveTempSlotForm" class="styled-form-box">
+            <div class="form-group">
+                <label for="absentTeacherSelect">اختر المعلم المتغيب:</label>
+                <select id="absentTeacherSelect" onchange="loadStudentsForAbsentTeacher()">
+                    <option value="" disabled selected>اختر معلمًا</option>
+                </select>
+            </div>
+
+            <div id="absentTeacherStudentsContainer">
+                <!-- سيتم تحميل الطلاب وزر تسجيل احتياطي بجانب كل طالب -->
+            </div>
+
+            <div class="form-group buttons">
+                <button type="button" class="button back-button" onclick="showPage('main-page')">
+                    <i class="fas fa-arrow-right"></i> العودة للصفحة الرئيسية
+                </button>
+            </div>
+        </form>
+    </div>
+
 
 
     <div id="trial-form-page" class="page-section">
@@ -2107,6 +2137,44 @@
         <!-- 🔔 الحالة -->
         <p id="renewalStatusMessage" class="status-message hidden"></p>
     </div>
+
+    <div id="reserveModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" onclick="closeReserveModal()">&times;</span>
+            <h3>تسجيل حلقة احتياطي للطالب <span id="reserveStudentName"></span></h3>
+
+            <div class="form-group">
+                <label for="backupTeacherSelect">اختر المعلم البديل:</label>
+                <select id="backupTeacherSelect" onchange="loadBackupTeacherSlots()">
+                    <option disabled selected>اختر معلمًا</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="backupDaySelect">اختر اليوم:</label>
+                <select id="backupDaySelect" onchange="loadBackupTimesForSelectedDay()">
+                    <option disabled selected>اختر اليوم</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="backupTimeSelect">اختر الميعاد:</label>
+                <select id="backupTimeSelect">
+                    <option disabled selected>اختر الميعاد</option>
+                </select>
+            </div>
+
+            <div class="form-group buttons">
+                <button class="button primary" onclick="submitBackupSession()">
+                    تأكيد الحجز
+                </button>
+                <button class="button danger" onclick="closeReserveModal()">
+                    إلغاء
+                </button>
+            </div>
+        </div>
+    </div>
+
 
 
     <div id="toast-container"></div>
@@ -5362,6 +5430,187 @@
                 })
                 .processStudentSubscriptionRenewal(renewalData);
         };
+
+
+        function loadBackupFormDependencies() {
+            // تنظيف القوائم قبل التحميل
+            const studentSelect = document.getElementById("backupStudent");
+            const daySelect = document.getElementById("backupDay");
+            const timeSelect = document.getElementById("backupTime");
+
+            studentSelect.innerHTML = `<option disabled selected>جارٍ التحميل...</option>`;
+            daySelect.innerHTML = `<option disabled selected>اختر اليوم</option>`;
+            timeSelect.innerHTML = `<option disabled selected>اختر الميعاد</option>`;
+
+            // جلب البيانات من باك اند
+            google.script.run.withSuccessHandler(function (data) {
+                // تعبئة الطلاب
+                studentSelect.innerHTML = `<option disabled selected>اختر طالبًا</option>`;
+                data.students.forEach(std => {
+                    const option = document.createElement("option");
+                    option.value = std.id;
+                    option.textContent = `${std.name} (${std.id})`;
+                    studentSelect.appendChild(option);
+                });
+
+                // تعبئة الأيام
+                const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                days.forEach(day => {
+                    const option = document.createElement("option");
+                    option.value = day;
+                    option.textContent = day;
+                    daySelect.appendChild(option);
+                });
+
+                // تعبئة المواعيد
+                data.timeSlots.forEach(slot => {
+                    const option = document.createElement("option");
+                    option.value = slot;
+                    option.textContent = slot;
+                    timeSelect.appendChild(option);
+                });
+
+            }).getBackupFormOptions();
+        }
+
+
+
+
+        let currentStudentForReserve = {};
+
+        function openReserveForm(studentId, studentName) {
+            currentStudentForReserve = { studentId, studentName };
+
+            document.getElementById("reserveStudentName").textContent = studentName;
+            document.getElementById("reserveModal").classList.remove("hidden");
+
+            // تحميل المعلمين
+            google.script.run.withSuccessHandler(function (teachers) {
+                const select = document.getElementById("backupTeacherSelect");
+                select.innerHTML = `<option disabled selected>اختر معلمًا</option>`;
+                teachers.forEach(t => {
+                    const opt = document.createElement("option");
+                    opt.value = t.teacherId;
+                    opt.textContent = t.name;
+                    select.appendChild(opt);
+                });
+
+                // تحميل الأيام
+                const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                const daySelect = document.getElementById("backupDaySelect");
+                daySelect.innerHTML = `<option disabled selected>اختر اليوم</option>`;
+                days.forEach(day => {
+                    const opt = document.createElement("option");
+                    opt.value = day;
+                    opt.textContent = day;
+                    daySelect.appendChild(opt);
+                });
+
+                // تنظيف الوقت
+                document.getElementById("backupTimeSelect").innerHTML = `<option disabled selected>اختر الميعاد</option>`;
+            }).getAllTeachersWithIds();
+        }
+
+        function closeReserveModal() {
+            document.getElementById("reserveModal").classList.add("hidden");
+            currentStudentForReserve = {};
+        }
+
+        function loadBackupTeacherSlots() {
+            document.getElementById("backupDaySelect").value = "";
+            document.getElementById("backupTimeSelect").innerHTML = `<option disabled selected>اختر الميعاد</option>`;
+        }
+
+        function loadBackupTimesForSelectedDay() {
+            const teacherId = document.getElementById("backupTeacherSelect").value;
+            const day = document.getElementById("backupDaySelect").value;
+
+            if (!teacherId || !day) return;
+
+            google.script.run.withSuccessHandler(function (timeSlots) {
+                const timeSelect = document.getElementById("backupTimeSelect");
+                timeSelect.innerHTML = `<option disabled selected>اختر الميعاد</option>`;
+                timeSlots.forEach(time => {
+                    const opt = document.createElement("option");
+                    opt.value = time;
+                    opt.textContent = time;
+                    timeSelect.appendChild(opt);
+                });
+            }).getAvailableSlotsForTeacherAndDay(teacherId, day);
+        }
+
+        function submitBackupSession() {
+            const teacherId = document.getElementById("backupTeacherSelect").value;
+            const day = document.getElementById("backupDaySelect").value;
+            const time = document.getElementById("backupTimeSelect").value;
+
+            if (!teacherId || !day || !time || !currentStudentForReserve.studentId) {
+                alert("يرجى اختيار جميع الحقول");
+                return;
+            }
+
+            google.script.run.withSuccessHandler(function (response) {
+                alert(response.success || response.error);
+                closeReserveModal();
+            }).assignBackupSession(
+                currentStudentForReserve.studentId,
+                currentStudentForReserve.studentName,
+                teacherId,
+                day,
+                time
+            );
+        }
+
+
+
+
+        function loadReserveTemporarySlotDependencies() {
+            google.script.run.withSuccessHandler(populateAbsentTeacherDropdown).getAllTeachersWithIds();
+        }
+
+
+        function populateAbsentTeacherDropdown(teachers) {
+            const select = document.getElementById("absentTeacherSelect");
+            select.innerHTML = '<option value="" disabled selected>اختر معلماً</option>';
+
+            teachers.forEach(teacher => {
+                const option = document.createElement("option");
+                option.value = teacher;
+                option.textContent = teacher;
+                select.appendChild(option);
+            });
+        }
+
+        function loadStudentsForAbsentTeacher() {
+            const teacherId = document.getElementById("absentTeacherSelect").value;
+            if (!teacherId) return;
+
+            google.script.run.withSuccessHandler(displayAbsentTeacherStudents)
+                .getAllStudentsForReserveFeature(teacherId);
+        }
+
+        function displayAbsentTeacherStudents(students) {
+            const container = document.getElementById("absentTeacherStudentsContainer");
+            container.innerHTML = "";
+
+            students.forEach(student => {
+                const div = document.createElement("div");
+                div.className = "reserve-student-box";
+
+                div.innerHTML = `
+      <p><strong>${student.name}</strong> (${student.studentID})</p>
+      <button class="button reserve-button" onclick="openReserveForm('${student.studentID}', '${student.name}')">
+        تسجيل حلقة احتياطي
+      </button>
+    `;
+
+                container.appendChild(div);
+            });
+        }
+
+
+
+
 
 
         function exportToExcel() {
